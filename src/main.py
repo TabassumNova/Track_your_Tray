@@ -6,6 +6,8 @@ import cv2
 import numpy as np
 import matplotlib.pyplot as plt
 from roi_detection import *
+from sam_segmentation import *
+
 
 # Aruco detection
 import importlib.util
@@ -65,7 +67,7 @@ def detect_contours(img_bgr, visualize=True):
     # Convert to grayscale
     gray = cv2.cvtColor(img_bgr, cv2.COLOR_BGR2GRAY)
     # Apply Canny edge detection
-    edges = cv2.Canny(gray, 100, 200)
+    edges = cv2.Canny(gray, 100, 150, apertureSize=3)
     # Find contours
     contours, hierarchy = cv2.findContours(edges, cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_SIMPLE)
     if visualize:
@@ -102,21 +104,25 @@ def filter_contours(img_bgr, contours, roi_pts, marker_dict, visualize=True):
 
     filtered = []
     for cnt in contours:
-        # Compute centroid via moments
+        # Check if every point of the contour is inside the ROI polygon
+        all_inside = True
+        for pt in cnt.reshape(-1, 2):
+            pt_clean = (int(pt[0]), int(pt[1]))
+            if cv2.pointPolygonTest(roi_poly, pt_clean, False) < 0:
+                all_inside = False
+                break
+        if not all_inside:
+            continue
+
+        # Must NOT be inside any Aruco marker polygon (centroid test)
         M = cv2.moments(cnt)
         if M["m00"] == 0:
             continue
         cx = M["m10"] / M["m00"]
         cy = M["m01"] / M["m00"]
-        pt = (cx, cy)
-
-        # Must be inside the ROI polygon
-        if cv2.pointPolygonTest(roi_poly, pt, False) < 0:
-            continue
-
-        # Must NOT be inside any Aruco marker polygon
+        centroid = (cx, cy)
         inside_marker = any(
-            cv2.pointPolygonTest(mpoly, pt, False) >= 0
+            cv2.pointPolygonTest(mpoly, centroid, False) >= 0
             for mpoly in marker_polys
         )
         if inside_marker:
@@ -159,10 +165,65 @@ def draw_bounding_boxes(img_bgr, contours, visualize=True):
         cv2.destroyAllWindows()
     return img_with_boxes, boxes
 
+def select_bright_pixels(img_bgr, contours, num_pixels=10, visualize=False):
+    """
+    For each contour, select the top N brightest pixels inside the contour (by grayscale value).
+    Optionally plot them in yellow with larger size.
+    Args:
+        img_bgr (np.ndarray): Input image in BGR format.
+        contours (list): List of contours (as from cv2.findContours).
+        num_pixels (int): Number of pixels to select per contour.
+        visualize (bool): If True, plot the selected pixels on the image.
+    Returns:
+        List of lists: Each sublist contains (x, y, value) tuples for the selected pixels in a contour.
+    """
+    gray = cv2.cvtColor(img_bgr, cv2.COLOR_BGR2GRAY)
+    selected_pixels = []
+    img_pixels = img_bgr.copy() if visualize else None
+    for cnt in contours:
+        # Create a mask for the contour
+        mask = np.zeros(gray.shape, dtype=np.uint8)
+        cv2.drawContours(mask, [cnt], -1, 255, -1)
+        # Get coordinates of all pixels inside the contour
+        ys, xs = np.where(mask == 255)
+        values = gray[ys, xs]
+        # Compute centroid of the contour
+        M = cv2.moments(cnt)
+        if M["m00"] == 0:
+            selected_pixels.append([])
+            continue
+        cx = M["m10"] / M["m00"]
+        cy = M["m01"] / M["m00"]
+        # Compute distance from centroid for each pixel
+        dists = np.sqrt((xs - cx) ** 2 + (ys - cy) ** 2)
+        # Sort pixels by distance to centroid (ascending)
+        center_sorted_idx = np.argsort(dists)
+        # Take a subset of pixels closest to the centroid (e.g., 30 pixels or all if fewer)
+        center_n = min(30, len(center_sorted_idx))
+        center_pixels_idx = center_sorted_idx[:center_n]
+        # Among these, select the brightest num_pixels
+        center_values = values[center_pixels_idx]
+        center_xs = xs[center_pixels_idx]
+        center_ys = ys[center_pixels_idx]
+        # Sort by grayscale value (descending)
+        bright_idx = np.argsort(center_values)[::-1]
+        chosen = []
+        for idx in bright_idx[:num_pixels]:
+            x, y, val = center_xs[idx], center_ys[idx], center_values[idx]
+            chosen.append((x, y, val))
+            if visualize:
+                cv2.circle(img_pixels, (int(x), int(y)), radius=5, color=(0, 255, 255), thickness=-1)
+        selected_pixels.append(chosen)
+    if visualize:
+        cv2.imshow('Brightest Pixels (Yellow)', img_pixels)
+        cv2.waitKey(0)
+        cv2.destroyAllWindows()
+    return selected_pixels
+
 
 if __name__ == "__main__":
     # image load
-    path = '/Users/nova98/Documents/Nova/Helios+/FX10/20260323/FX10_Aruco_random_2026-03-23_12-34-11/capture/FX10_Aruco_random_2026-03-23_12-34-11.hdr'
+    path = '/Users/nova98/Documents/Nova/Helios+/FX10/20260323/FX10_Aruco_random_2026-03-23_08-45-11/capture/FX10_Aruco_random_2026-03-23_07-45-43.hdr'
     image = io.load(path)
     img_bgr = plot_hyimage(image)
     # aruco marker detction
@@ -178,11 +239,28 @@ if __name__ == "__main__":
     # edge_detection(img_bgr)
     
     # Contour detection
-    contours, hierarchy = detect_contours(img_bgr, visualize=True)
+    # contours, hierarchy = detect_contours(img_bgr, visualize=True)
+    # Alternative way using SAM
+    CHECKPOINT = "/Users/nova98/Documents/Nova/3d_localization/sam_checkpoints/sam_vit_h_4b8939.pth"  # <-- replace with checkpoint path
+    MODEL_TYPE = "vit_h"   # 'vit_h', 'vit_l', or 'vit_b'
+    DEVICE = "cpu"         # 'cuda' if GPU available
+    mask_generator = load_sam_model(CHECKPOINT, model_type=MODEL_TYPE, device=DEVICE)
+    masks = run_sam_everything(img_bgr, mask_generator)
+    result_bgr = visualize_sam_masks(img_bgr, masks)
+    contours = masks_to_contours(masks)
 
     # Filter contours: inside ROI only, Aruco markers excluded
     filtered = filter_contours(img_bgr, contours, roi_pts, marker_dict, visualize=True)
     print(f"Contours after filtering: {len(filtered)}")
 
+    # Select bright pixels within each filtered contour
+    bright_pixels = select_bright_pixels(img_bgr, filtered, num_pixels=10)
+    for i, pixels in enumerate(bright_pixels):
+        print(f"Contour {i}: {pixels}")
+
+
     # Draw bounding boxes around filtered contours
     img_with_boxes, boxes = draw_bounding_boxes(img_bgr, filtered, visualize=True)
+
+    # Select and plot the 10 brightest pixels inside each filtered contour
+    selected_pixels = select_bright_pixels(img_bgr, filtered, num_pixels=10, visualize=True)

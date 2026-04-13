@@ -2,3 +2,6 @@ opencv-python
 numpy
 matplotlib
 hylite
+segment-anything
+torch
+torchvision
