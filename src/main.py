@@ -1,4 +1,3 @@
-
 import hylite
 from hylite import io
 
@@ -6,7 +5,10 @@ import cv2
 import numpy as np
 import matplotlib.pyplot as plt
 from roi_detection import *
-from sam_segmentation import *
+from segmentation.sam_segmentation import *
+from segmentation.sam2_segmentation import *
+from visualization import *
+from segmentation.contour_detection import *
 
 
 # Aruco detection
@@ -18,28 +20,7 @@ spec = importlib.util.spec_from_file_location(
 aruco_detection = importlib.util.module_from_spec(spec)
 spec.loader.exec_module(aruco_detection)
 
-def plot_hyimage(image):
-    
-    # Find the band index closest to 770 nm (FX10) and 1322 nm (FX17)
-    wavelengths = image.get_wavelengths()
-    band_idx = np.argmin(np.abs(wavelengths - 770.0))
 
-    # Extract band and normalize to uint8 (0-255), handling NaN
-    band_data = image.data[:, :, band_idx].astype(np.float32)
-    band_data = np.nan_to_num(band_data, nan=0.0)
-    band_norm = cv2.normalize(band_data, None, 0, 255, cv2.NORM_MINMAX).astype(np.uint8)
-
-    # Stack into BGR (grayscale equivalent) for cv2 processing
-    img_bgr = cv2.merge([band_norm, band_norm, band_norm])
-
-    # Mirror along the x-axis (vertical flip)
-    img_bgr = cv2.flip(img_bgr, 0)
-
-    cv2.imshow('Band at ~770 nm', img_bgr)
-    cv2.waitKey(0)
-    cv2.destroyAllWindows()
-
-    return img_bgr
 
 def edge_detection(image):
     # Convert to grayscale
@@ -53,30 +34,7 @@ def edge_detection(image):
     cv2.waitKey(0)
     cv2.destroyAllWindows()
 
-# Function to detect contours in an image using OpenCV
-def detect_contours(img_bgr, visualize=True):
-    """
-    Detect contours in a BGR image using OpenCV.
-    Args:
-        img_bgr (np.ndarray): Input image in BGR format.
-        visualize (bool): If True, display the contours on the image.
-    Returns:
-        contours (list): Detected contours.
-        hierarchy (np.ndarray): Contour hierarchy.
-    """
-    # Convert to grayscale
-    gray = cv2.cvtColor(img_bgr, cv2.COLOR_BGR2GRAY)
-    # Apply Canny edge detection
-    edges = cv2.Canny(gray, 100, 150, apertureSize=3)
-    # Find contours
-    contours, hierarchy = cv2.findContours(edges, cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_SIMPLE)
-    if visualize:
-        img_contours = img_bgr.copy()
-        cv2.drawContours(img_contours, contours, -1, (0, 255, 0), 2)
-        cv2.imshow('Contours', img_contours)
-        cv2.waitKey(0)
-        cv2.destroyAllWindows()
-    return contours, hierarchy
+
 
 def filter_contours(img_bgr, contours, roi_pts, marker_dict, visualize=True):
     """
@@ -221,42 +179,202 @@ def select_bright_pixels(img_bgr, contours, num_pixels=10, visualize=False):
     return selected_pixels
 
 
+def map_pixels_to_mm(roi_pts, selected_pixels, roi_size_mm=325.0, visualize=True, img_bgr=None):
+    """
+    Map pixel coordinates to millimeter scale using the ROI corners via perspective transform.
+
+    The ROI is treated as a square of side roi_size_mm.  Corner ordering must
+    match find_ROI: [top-left, top-right, bottom-right, bottom-left].
+
+    Args:
+        roi_pts        (list):            Four corner points of the ROI in pixel space.
+        selected_pixels (list of lists):  Output from select_bright_pixels —
+                                          each sublist contains (x, y, value) tuples.
+        roi_size_mm    (float):           Physical side length of the ROI in mm (default 325).
+        visualize      (bool):            If True, display the image with mm labels.
+        img_bgr        (np.ndarray):      Image to annotate (required when visualize=True).
+
+    Returns:
+        pixels_mm (list of lists): Each sublist contains (x_mm, y_mm) tuples,
+                                   one per pixel in the corresponding contour.
+    """
+    # Perspective transform: pixel space → mm space
+    src = np.float32(roi_pts)  # [TL, TR, BR, BL]
+    dst = np.float32([
+        [0,           0          ],
+        [roi_size_mm, 0          ],
+        [roi_size_mm, roi_size_mm],
+        [0,           roi_size_mm],
+    ])
+    M = cv2.getPerspectiveTransform(src, dst)
+
+    pixels_mm = []
+    for contour_pixels in selected_pixels:
+        contour_mm = []
+        for (x, y, _val) in contour_pixels:
+            pt = np.array([[[float(x), float(y)]]], dtype=np.float32)
+            pt_mm = cv2.perspectiveTransform(pt, M)[0][0]
+            contour_mm.append((float(pt_mm[0]), float(pt_mm[1])))
+        pixels_mm.append(contour_mm)
+
+    if visualize and img_bgr is not None:
+        vis = img_bgr.copy()
+        font       = cv2.FONT_HERSHEY_SIMPLEX
+        font_scale = 0.65
+        thickness  = 2
+        arrow_len  = 30   # px from dot tip to label anchor
+
+        for contour_pixels, contour_mm in zip(selected_pixels, pixels_mm):
+            for (x, y, _val), (x_mm, y_mm) in zip(contour_pixels, contour_mm):
+                px, py = int(x), int(y)
+
+                # Arrow tip offset: place label to the right and slightly above
+                tip_x = px + arrow_len
+                tip_y = py - arrow_len
+
+                label = f"({x_mm:.1f}, {y_mm:.1f}) mm"
+                (tw, th), baseline = cv2.getTextSize(label, font, font_scale, thickness)
+
+                # Draw a filled dark rectangle behind the text for readability
+                pad = 4
+                cv2.rectangle(
+                    vis,
+                    (tip_x - pad, tip_y - th - pad),
+                    (tip_x + tw + pad, tip_y + baseline + pad),
+                    (30, 30, 30),
+                    cv2.FILLED,
+                )
+
+                # Arrow from dot to label box
+                cv2.arrowedLine(
+                    vis,
+                    (px, py),
+                    (tip_x, tip_y),
+                    (0, 255, 255),
+                    thickness=2,
+                    tipLength=0.25,
+                )
+
+                # Dot at the pixel location
+                cv2.circle(vis, (px, py), 5, (0, 255, 255), -1)
+
+                # Label text
+                cv2.putText(
+                    vis, label,
+                    (tip_x, tip_y),
+                    font, font_scale, (255, 255, 0), thickness, cv2.LINE_AA,
+                )
+
+        cv2.imshow("Pixel Positions in mm", vis)
+        cv2.waitKey(0)
+        cv2.destroyAllWindows()
+
+    return pixels_mm
+
+
+
+def warp_contours_to_original(contours, roi_pts, roi_size_px=400, img_bgr=None, visualize=True):
+    """
+    Warp contours from the cropped ROI image back to the original image using inverse perspective transform.
+
+    Args:
+        contours (list): Contours in the cropped ROI image (list of np.ndarray).
+        roi_pts (list): Four corner points of the ROI in the original image (TL, TR, BR, BL).
+        roi_size_px (int): Size of the cropped ROI image (width/height in px).
+        img_bgr (np.ndarray): Original image to visualize on (optional).
+        visualize (bool): If True, display the contours on the original image.
+
+    Returns:
+        contours_orig (list): Contours mapped to the original image coordinates.
+    """
+    # Perspective transform: cropped ROI -> original image
+    dst = np.float32([
+        [0, 0],
+        [roi_size_px - 1, 0],
+        [roi_size_px - 1, roi_size_px - 1],
+        [0, roi_size_px - 1],
+    ])
+    src = np.float32(roi_pts)
+    Minv = cv2.getPerspectiveTransform(dst, src)
+
+    contours_orig = []
+    for cnt in contours:
+        cnt = cnt.astype(np.float32)
+        cnt_warped = cv2.perspectiveTransform(cnt, Minv)
+        contours_orig.append(cnt_warped.astype(np.int32))
+
+    if visualize and img_bgr is not None:
+        vis = img_bgr.copy()
+        cv2.drawContours(vis, contours_orig, -1, (0, 0, 255), 2)
+        cv2.imshow("Contours posed in original image", vis)
+        cv2.waitKey(0)
+        cv2.destroyAllWindows()
+
+    return contours_orig
+
+
+
+
+
 if __name__ == "__main__":
     # image load
-    path = '/Users/nova98/Documents/Nova/Helios+/FX10/20260323/FX10_Aruco_random_2026-03-23_08-45-11/capture/FX10_Aruco_random_2026-03-23_07-45-43.hdr'
+    path = '/Users/nova98/Documents/Nova/Helios+/FX10/20260323/FX10_Aruco_random_2026-03-23_13-13-47_nicd_with_objects/capture/FX10_Aruco_random_2026-03-23_13-13-47.hdr'
     image = io.load(path)
     img_bgr = plot_hyimage(image)
     # aruco marker detction
     marker_dict = aruco_detection.getAruco(img_bgr)
     # # # roi detection
-    roi_pts = find_ROI(img_bgr, marker_dict)
+    CONSIDERED_MARKER = [34, 38, 39, 37, 35, 46, 45, 42, 49, 53, 43, 32] # <-- specify which markers are on the tray
+    roi_pts = find_ROI(img_bgr, marker_dict, considered_markers=CONSIDERED_MARKER)
     
-    # grid line detection
-    # find_grid(img_bgr, marker_dict)
 
-    pass
-    # # Edge detection
-    # edge_detection(img_bgr)
+    # Crop ROI
+    roi_cropped = crop_roi_from_image(img_bgr, roi_pts, roi_size_px=400, visualize=True)
+    img_bgr1 = roi_cropped  # For subsequent processing, focus on the cropped ROI
+
+    # # Test: Apply blob detection
+    # keypoints = detect_blobs(img_bgr, visualize=True, min_area=50, max_area=5000, threshold=10)
+
+    # # Test: Apply haris corner detection
+    # corners = detect_harris_corners(img_bgr, visualize=True, block_size=2, ksize=3, k=0.04, threshold_rel=0.01)
     
     # Contour detection
-    # contours, hierarchy = detect_contours(img_bgr, visualize=True)
-    # Alternative way using SAM
-    CHECKPOINT = "/Users/nova98/Documents/Nova/3d_localization/sam_checkpoints/sam_vit_h_4b8939.pth"  # <-- replace with checkpoint path
-    MODEL_TYPE = "vit_h"   # 'vit_h', 'vit_l', or 'vit_b'
-    DEVICE = "cpu"         # 'cuda' if GPU available
-    mask_generator = load_sam_model(CHECKPOINT, model_type=MODEL_TYPE, device=DEVICE)
-    masks = run_sam_everything(img_bgr, mask_generator)
-    result_bgr = visualize_sam_masks(img_bgr, masks)
-    contours = masks_to_contours(masks)
+    contours, hierarchy = detect_contours(img_bgr1, visualize=True)
+
+    import time
+    # ── SAM1 segmentation ────────────────────────────────────────────────────
+    SAM1_CHECKPOINT_PATH = "/Users/nova98/Documents/Nova/3d_localization/sam_checkpoints"
+    SAM1_MODEL_TYPE = "vit_b"   # 'vit_h', 'vit_l', or 'vit_b'
+    DEVICE = "cpu"              # 'cuda' if GPU available
+    start_time = time.time()
+    sam1_contours = run_SAM1(img_bgr1, SAM1_CHECKPOINT_PATH, SAM1_MODEL_TYPE, DEVICE)
+    print(f"SAM1 segmentation took {time.time() - start_time:.2f} seconds")
+
+    # ── SAM2 segmentation ────────────────────────────────────────────────────
+    SAM2_CHECKPOINT = "/Users/nova98/Documents/Nova/3d_localization/sam_checkpoints/sam2.1_hiera_tiny.pt"
+    SAM2_MODEL_TYPE = "tiny"  # 'tiny', 'small', 'base_plus', or 'large'
+    start_time = time.time()
+    DEVICE = "cpu"
+    sam2_mask_generator = load_sam2_model(SAM2_CHECKPOINT, model_type=SAM2_MODEL_TYPE, device=DEVICE)
+    sam2_masks = run_sam2_everything(img_bgr1, sam2_mask_generator)
+    result_bgr_sam2 = visualize_sam2_masks(img_bgr1, sam2_masks)
+    sam2_contours = sam2_masks_to_contours(sam2_masks)
+    print(f"SAM2 segmentation took {time.time() - start_time:.2f} seconds")
+
+    # Choose which contours to use downstream (swap between sam1_contours / sam2_contours)
+    contours = sam2_contours
+
+    # Pose the contours in the original img_bgr (not cropped)
+    contours_orig = warp_contours_to_original(contours, roi_pts, roi_size_px=400, img_bgr=img_bgr, visualize=True)
 
     # Filter contours: inside ROI only, Aruco markers excluded
-    filtered = filter_contours(img_bgr, contours, roi_pts, marker_dict, visualize=True)
+    filtered = filter_contours(img_bgr, contours_orig, roi_pts, marker_dict, visualize=True)
     print(f"Contours after filtering: {len(filtered)}")
 
     # Select bright pixels within each filtered contour
     bright_pixels = select_bright_pixels(img_bgr, filtered, num_pixels=10)
-    for i, pixels in enumerate(bright_pixels):
-        print(f"Contour {i}: {pixels}")
+    # for i, pixels in enumerate(bright_pixels):
+    #     print(f"Contour {i}: {pixels}")
 
 
     # Draw bounding boxes around filtered contours
@@ -264,3 +382,7 @@ if __name__ == "__main__":
 
     # Select and plot the 10 brightest pixels inside each filtered contour
     selected_pixels = select_bright_pixels(img_bgr, filtered, num_pixels=10, visualize=True)
+
+    # Map the pixels in millimeter scale.
+    pixels_mm = map_pixels_to_mm(roi_pts, selected_pixels, roi_size_mm=325.0, visualize=True, img_bgr=img_bgr)
+

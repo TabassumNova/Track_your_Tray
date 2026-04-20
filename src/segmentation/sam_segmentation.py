@@ -2,7 +2,7 @@
 SAM (Segment Anything Model) - Automatic Everything Mode
 Segments all objects in an image automatically without any prompts.
 """
-
+import os
 import cv2
 import numpy as np
 import matplotlib.pyplot as plt
@@ -83,8 +83,6 @@ def visualize_sam_masks(img_bgr, masks, alpha=0.4):
     cv2.waitKey(0)
     cv2.destroyAllWindows()
 
-    return result_bgr
-
 
 def masks_to_contours(masks):
     """
@@ -104,38 +102,28 @@ def masks_to_contours(masks):
             all_contours.append(largest)
     return all_contours
 
+def run_SAM1(img, checkpoint_folder, model_type, device):
+    '''
+    Args:
+        img (np.ndarray): Input image in BGR format.
+        checkpoint_folder (str): Directory containing the SAM model checkpoint.
+        model_type (str): SAM model type: 'vit_h', 'vit_l', or 'vit_b'.
+        device (str): 'cuda' for GPU, 'cpu' for CPU.
+    Returns:
+        sam1_contours (list): List of contours detected by SAM1.
+    '''
+    
+    base_dir = checkpoint_folder
+    checkpoint_file = None
+    model_type_lower = model_type.lower()
+    for fname in os.listdir(base_dir):
+        if model_type_lower in fname.lower() and (fname.endswith('.pth') or fname.endswith('.pt')):
+            checkpoint_file = os.path.join(base_dir, fname)
+            break
 
-if __name__ == "__main__":
-    import os
+    sam1_mask_generator = load_sam_model(checkpoint_file, model_type=model_type, device=device)
+    sam1_masks = run_sam_everything(img, sam1_mask_generator)
+    visualize_sam_masks(img, sam1_masks)
+    sam1_contours = masks_to_contours(sam1_masks)
+    return sam1_contours
 
-    # ── Configuration ─────────────────────────────────────────────────────────
-    IMAGE_PATH = "/Users/nova98/Documents/Nova/Helios+/FX10/20260323/FX10_Aruco_random_2026-03-23_08-45-11/FX10_Aruco_random_2026-03-23_07-45-43.png"   # <-- replace with your image path
-    CHECKPOINT = "/Users/nova98/Documents/Nova/3d_localization/sam_checkpoints/sam_vit_h_4b8939.pth"  # <-- replace with checkpoint path
-    MODEL_TYPE = "vit_h"   # 'vit_h', 'vit_l', or 'vit_b'
-    DEVICE = "cpu"         # 'cuda' if GPU available
-    # ──────────────────────────────────────────────────────────────────────────
-
-    if not os.path.exists(IMAGE_PATH):
-        raise FileNotFoundError(f"Image not found: {IMAGE_PATH}")
-    if not os.path.exists(CHECKPOINT):
-        raise FileNotFoundError(
-            f"SAM checkpoint not found: {CHECKPOINT}\n"
-            "Download from: https://github.com/facebookresearch/segment-anything#model-checkpoints"
-        )
-
-    # Load image
-    img_bgr = cv2.imread(IMAGE_PATH)
-
-    # Load SAM model
-    print(f"Loading SAM model ({MODEL_TYPE}) ...")
-    mask_generator = load_sam_model(CHECKPOINT, model_type=MODEL_TYPE, device=DEVICE)
-
-    # Run automatic segmentation (everything mode)
-    masks = run_sam_everything(img_bgr, mask_generator)
-
-    # Visualize all masks
-    result = visualize_sam_masks(img_bgr, masks)
-
-    # Optionally convert masks to OpenCV contours for further processing
-    contours = masks_to_contours(masks)
-    print(f"Converted to {len(contours)} contours.")
