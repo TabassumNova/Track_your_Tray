@@ -529,7 +529,7 @@ def select_pixels_by_click(img_bgr, window_name='Select Pixels (click to add, q 
 
 
 if __name__ == "__main__":
-    print("Starting processing...")
+    print("Starting processing1...")
     # image load
     path = '/Users/nova98/Documents/Nova/Helios+/FX10/20260512/FX10_3DmultipleHeightsDir1_2026-05-12_09-36-36/capture/FX10_3DmultipleHeightsDir1_2026-05-12_09-36-36.hdr'
     image = io.load(path)
