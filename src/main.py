@@ -531,7 +531,7 @@ def select_pixels_by_click(img_bgr, window_name='Select Pixels (click to add, q 
 if __name__ == "__main__":
     print("Starting processing1...")
     # image load
-    path = '/Users/nova98/Documents/Nova/Helios+/FX10/20260512/FX10_3DmultipleHeightsDir1_2026-05-12_09-36-36/capture/FX10_3DmultipleHeightsDir1_2026-05-12_09-36-36.hdr'
+    path = '/Users/nova98/Documents/Nova/Helios+/FX17/20260512/FX17_3DmultipleHeightsDir1_2026-05-12_09-35-30/capture/FX17_3DmultipleHeightsDir1_2026-05-12_09-35-30.hdr'
     image = io.load(path)
     img_bgr = plot_hyimage(image)
     # aruco marker detction
@@ -543,7 +543,7 @@ if __name__ == "__main__":
     roi_pts = find_ROI(img_bgr, marker_dict, considered_markers=CONSIDERED_MARKER)
     
     # Crop ROI
-    roi_cropped, img_warped, warped_roi_pts, warped_marker_dict = crop_roi_from_image(img_bgr, roi_pts, marker_dict, roi_size_px=400, visualize=True)
+    roi_cropped, img_warped, warped_roi_pts, warped_marker_dict = crop_roi_from_image(img_bgr, roi_pts, marker_dict, roi_size_px=1000, visualize=True)
     img_bgr1 = roi_cropped  # For subsequent processing, focus on the cropped ROI
 
     # # Select pixels from mouse click by user (for testing purposes)
@@ -583,7 +583,7 @@ if __name__ == "__main__":
     contours = sam2_contours
 
     # Pose the contours in the original img_bgr (not cropped)
-    contours_orig = warp_contours_to_original(contours, warped_roi_pts, roi_size_px=400, img_bgr=img_warped, visualize=True)
+    contours_orig = warp_contours_to_original(contours, warped_roi_pts, roi_size_px=1000, img_bgr=img_warped, visualize=True)
 
     # Filter contours: inside ROI only, Aruco markers excluded
     filtered = filter_contours(img_warped, contours_orig, warped_roi_pts, warped_marker_dict, visualize=True)
