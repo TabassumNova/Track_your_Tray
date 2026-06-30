@@ -230,19 +230,6 @@ def aruco_detection_and_mapping(path, aruco_ids):
     print(f"Mapped {len(pixels_mm)} middle Aruco corner points to mm scale.")
     print(f"Saved marker corner CSV: {csv_path}")
     
-    # ###################
-    # # Estimate and visualize poses
-    # print("\nEstimating ArUco marker poses...")
-    # poses, img_with_axes = estimate_aruco_poses(img_warped, warped_marker_dict, marker_ids_found, marker_size_mm=60.0)
-    
-    # successful_poses = sum(1 for p in poses.values() if p.get('success', False))
-    # print(f"Successfully estimated poses for {successful_poses}/{len(marker_ids_found)} markers.")
-    
-    # # Display pose visualization
-    # cv2.imshow("ArUco Poses (3D Axes)", img_with_axes)
-    # cv2.waitKey(0)
-    # cv2.destroyAllWindows()
-    # ####################
 
 if __name__ == "__main__":
     aruco_ids = [100, 101, 102, 103, 104, 105, 106, 107, 108, 109, 110, 111, 11, 3] 

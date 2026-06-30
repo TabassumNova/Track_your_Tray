@@ -111,3 +111,104 @@ def detect_harris_corners(img_bgr, visualize=True, block_size=2, ksize=3, k=0.04
         cv2.destroyAllWindows()
 
     return corners
+
+def edge_detection(image):
+    # Convert to grayscale
+    gray = cv2.cvtColor(image, cv2.COLOR_BGR2GRAY)
+
+    # Apply Canny edge detection
+    edges = cv2.Canny(gray, 100, 200)
+
+    # Display the edges
+    cv2.imshow('Edges', edges)
+    cv2.waitKey(0)
+    cv2.destroyAllWindows()
+
+
+def filter_contours(img_bgr, contours, roi_pts, marker_dict, visualize=True):
+    """
+    Filter contours to only those inside the ROI polygon, excluding contours
+    that belong to Aruco markers.
+
+    Args:
+        img_bgr     (np.ndarray): Input image in BGR format.
+        contours    (list):       Contours from cv2.findContours.
+        roi_pts     (list):       Four corner points defining the ROI polygon.
+        marker_dict (dict):       {marker_id: corners} from Aruco detection,
+                                  where corners has shape (1, 4, 2).
+        visualize   (bool):       If True, display the filtered contours.
+
+    Returns:
+        filtered (list): Contours inside the ROI and not on any Aruco marker.
+    """
+    roi_poly = np.int32(roi_pts)
+
+    # Build a list of Aruco marker polygons for quick lookup
+    marker_polys = []
+    for corners in marker_dict.values():
+        pts = np.int32(corners[0])   # shape (4, 2)
+        marker_polys.append(pts)
+
+    filtered = []
+    for cnt in contours:
+        # Check if every point of the contour is inside the ROI polygon
+        all_inside = True
+        for pt in cnt.reshape(-1, 2):
+            pt_clean = (int(pt[0]), int(pt[1]))
+            if cv2.pointPolygonTest(roi_poly, pt_clean, False) < 0:
+                all_inside = False
+                break
+        if not all_inside:
+            continue
+
+        # Must NOT be inside any Aruco marker polygon (centroid test)
+        M = cv2.moments(cnt)
+        if M["m00"] == 0:
+            continue
+        cx = M["m10"] / M["m00"]
+        cy = M["m01"] / M["m00"]
+        centroid = (cx, cy)
+        inside_marker = any(
+            cv2.pointPolygonTest(mpoly, centroid, False) >= 0
+            for mpoly in marker_polys
+        )
+        if inside_marker:
+            continue
+
+        filtered.append(cnt)
+
+    if visualize:
+        vis = img_bgr.copy()
+        # Draw the ROI boundary
+        # cv2.polylines(vis, [roi_poly], isClosed=True, color=(0, 255, 255), thickness=2)
+        # Draw the filtered contours
+        cv2.drawContours(vis, filtered, -1, (0, 0, 255), 2)
+        cv2.imshow('Filtered Contours (inside ROI, no markers)', vis)
+        cv2.waitKey(0)
+        cv2.destroyAllWindows()
+
+    return filtered
+
+
+def draw_bounding_boxes(img_bgr, contours, visualize=True):
+    """
+    Draw bounding boxes around the given contours and visualize them.
+    Args:
+        img_bgr (np.ndarray): Input image in BGR format.
+        contours (list): List of contours to draw bounding boxes around.
+        visualize (bool): If True, display the image with bounding boxes.
+    Returns:
+        img_with_boxes (np.ndarray): Image with bounding boxes drawn.
+        boxes (list): List of bounding box coordinates (x, y, w, h).
+    """
+    img_with_boxes = img_bgr.copy()
+    boxes = []
+    for cnt in contours:
+        x, y, w, h = cv2.boundingRect(cnt)
+        boxes.append((x, y, w, h))
+        cv2.rectangle(img_with_boxes, (x, y), (x + w, y + h), (255, 0, 0), 2)
+    if visualize:
+        cv2.imshow('Bounding Boxes', img_with_boxes)
+        cv2.waitKey(0)
+        cv2.destroyAllWindows()
+    return img_with_boxes, boxes
