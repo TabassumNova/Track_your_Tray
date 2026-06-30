@@ -107,5 +107,5 @@ if __name__ == "__main__":
     
 
     # Map the pixels in millimeter scale.
-    pixels_mm = map_pixels_to_mm(warped_roi_pts, selected_pixels, roi_size_mm=311.0, visualize=True, img=img_warped)
+    pixels_mm = map_pixels_to_mm(warped_roi_pts, selected_pixels, roi_size_mm=318.0, visualize=True, img=img_warped)
 

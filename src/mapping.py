@@ -1,7 +1,7 @@
 import cv2
 import numpy as np
 
-def map_pixels_to_mm(roi_pts, selected_pixels, roi_size_mm=325.0, visualize=True, img=None):
+def map_pixels_to_mm(roi_pts, selected_pixels, roi_size_mm=325.0, visualisation=True, img=None):
     """
     Map pixel coordinates to millimeter scale using the ROI corners via perspective transform.
 
@@ -13,8 +13,8 @@ def map_pixels_to_mm(roi_pts, selected_pixels, roi_size_mm=325.0, visualize=True
         selected_pixels (list of lists):  Output from select_bright_pixels —
                                           each sublist contains (x, y, value) tuples.
         roi_size_mm    (float):           Physical side length of the ROI in mm (default 325).
-        visualize      (bool):            If True, display the image with mm labels.
-        img            (np.ndarray):      Image to annotate (required when visualize=True).
+        visualisation (bool):            If True, display the image with mm labels.
+        img            (np.ndarray):      Image to annotate (required when visualisation=True).
 
     Returns:
         pixels_mm (list of lists): Each sublist contains (x_mm, y_mm) tuples,
@@ -39,7 +39,7 @@ def map_pixels_to_mm(roi_pts, selected_pixels, roi_size_mm=325.0, visualize=True
             contour_mm.append((float(pt_mm[0]), float(pt_mm[1])))
         pixels_mm.append(contour_mm)
 
-    if visualize and img is not None:
+    if visualisation and img is not None:
         vis = img.copy()
         font       = cv2.FONT_HERSHEY_SIMPLEX
         font_scale = 0.65

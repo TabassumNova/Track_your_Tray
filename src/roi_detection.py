@@ -79,7 +79,7 @@ def intersection(L1, L2):
     y = Dy / D
     return np.array([x, y])
 
-def find_ROI(image, marker_dict, considered_markers, visualize=True):
+def find_ROI(image, marker_dict, considered_markers, visualisation=True):
 
     # Flatten all corners for only considered markers
     all_corners = []
@@ -112,7 +112,7 @@ def find_ROI(image, marker_dict, considered_markers, visualize=True):
 
 
     # Draw ROI polygon (optional)
-    if visualize:
+    if visualisation:
         img_vis = image.copy()
         for pt in roi_pts:
             if pt is not None:
@@ -128,7 +128,7 @@ def find_ROI(image, marker_dict, considered_markers, visualize=True):
 
     return np.array(roi_pts)
 
-def crop_roi_from_image(img_bgr, roi_pts, marker_dict, roi_size_px=400, visualize=True):
+def crop_roi_from_image(img_bgr, roi_pts, marker_dict, roi_size_px=400, visualisation=True):
     """
     Crop the ROI area from the input image using a perspective transform.
 
@@ -136,7 +136,7 @@ def crop_roi_from_image(img_bgr, roi_pts, marker_dict, roi_size_px=400, visualiz
         img_bgr (np.ndarray): Input image (BGR).
         roi_pts (list): Four corner points of the ROI in pixel space (TL, TR, BR, BL).
         roi_size_px (int): Output size (width and height in pixels) for the cropped ROI.
-        visualize (bool): If True, display the cropped ROI.
+        visualisation (bool): If True, display the cropped ROI.
 
     Returns:
         roi_cropped (np.ndarray): Cropped, perspective-corrected ROI image.
@@ -181,7 +181,7 @@ def crop_roi_from_image(img_bgr, roi_pts, marker_dict, roi_size_px=400, visualiz
         warped_corners = cv2.perspectiveTransform(corners_arr, M_full)
         warped_marker_dict[marker_id] = warped_corners
 
-    if visualize:
+    if visualisation:
         # Visualize warped ROI points and markers on img_warped
         img_warped_vis = img_warped.copy()
         cv2.polylines(img_warped_vis, [np.int32(warped_roi_pts)], isClosed=True, color=(0, 255, 0), thickness=2)

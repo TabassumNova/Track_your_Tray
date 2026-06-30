@@ -145,9 +145,10 @@ def aruco_detection_and_mapping(path, aruco_ids):
 
 
 if __name__ == "__main__":
-    dataset_path = '/Users/nova98/Documents/Nova/Helios+/FX10/20260616/4cm_Cube'
+    dataset_path = '/Users/nova98/Documents/Nova/Helios+/FX10/20260616/10cm_Cube'
     TRAY_ARUCOS = [34, 38, 39, 37, 35, 46, 45, 42, 49, 53, 43, 32, 74] # <-- Big black tray
     MEASUREMENT_ARUCOS = [100, 101, 102, 103, 104, 105, 106, 107, 108, 109, 110, 111] 
+    TRAY_SIZE = 325 # Actual tray size in mm (for the big black tray)
     CUBE_ARUCO = 3
     CUBE_SQUARE_SIZE = 50 # in mm
     CUBE_MARKER_SIZE = 40 # in mm
@@ -158,6 +159,7 @@ if __name__ == "__main__":
     
     pipeline = PoseAnalysisPipeline(
         dataset_path=dataset_path,
+        tray_size=TRAY_SIZE,
         tray_aruco_ids=TRAY_ARUCOS,
         measurement_aruco_ids=MEASUREMENT_ARUCOS,
         cube_aruco_id=CUBE_ARUCO,
@@ -166,6 +168,8 @@ if __name__ == "__main__":
         tray_square_size=TRAY_SQUARE_SIZE,
         tray_marker_size=TRAY_MARKER_SIZE
     )
+
+    pipeline.start_analysis()
 
     # path = '/Users/nova98/Documents/Nova/Helios+/FX10/20260616/FX10_ArucoCube_10cm_pose11_2026-06-16_11-43-03/capture/FX10_ArucoCube_10cm_pose11_2026-06-16_11-43-03.hdr'
     # aruco_ids = [11]

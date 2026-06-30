@@ -1,11 +1,12 @@
 import numpy as np
 import cv2
 
-def plot_hyimage(image):
+def plot_hyimage(image, visualisation=True):
     '''
     Plot a hyperspectral image by selecting a specific band.
     Args:
     - image: HyImage object
+    - visualisation: bool, whether to display the image using cv2.imshow
     '''
     
     # Find the band index closest to 770 nm (FX10) and 1322 nm (FX17)
@@ -25,8 +26,9 @@ def plot_hyimage(image):
     # Mirror along the x-axis (vertical flip)
     img_bgr = cv2.flip(img_bgr, 0)
 
-    cv2.imshow(f'Band at ~{selected_band} nm', img_bgr)
-    cv2.waitKey(0)
-    cv2.destroyAllWindows()
+    if visualisation:
+        cv2.imshow(f'Band at ~{selected_band} nm', img_bgr)
+        cv2.waitKey(0)
+        cv2.destroyAllWindows()
 
     return img_bgr
