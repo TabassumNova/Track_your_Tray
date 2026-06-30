@@ -531,7 +531,7 @@ def select_pixels_by_click(img_bgr, window_name='Select Pixels (click to add, q 
 if __name__ == "__main__":
     print("Starting processing1...")
     # image load
-    path = '/Users/nova98/Documents/Nova/Helios+/FX17/20260512/FX17_3DmultipleHeightsDir1_2026-05-12_09-35-30/capture/FX17_3DmultipleHeightsDir1_2026-05-12_09-35-30.hdr'
+    path = '/Users/nova98/Documents/Nova/Helios+/FX10/20260323/FX10_Aruco_random_2026-03-23_13-13-47_nicd_with_objects/capture/FX10_Aruco_random_2026-03-23_13-13-47.hdr'
     image = io.load(path)
     img_bgr = plot_hyimage(image)
     # aruco marker detction
@@ -546,10 +546,10 @@ if __name__ == "__main__":
     roi_cropped, img_warped, warped_roi_pts, warped_marker_dict = crop_roi_from_image(img_bgr, roi_pts, marker_dict, roi_size_px=1000, visualize=True)
     img_bgr1 = roi_cropped  # For subsequent processing, focus on the cropped ROI
 
-    # # Select pixels from mouse click by user (for testing purposes)
-    selected_pixels = select_pixels_by_click(img_warped)
+    # # # Select pixels from mouse click by user (for testing purposes)
+    # selected_pixels = select_pixels_by_click(img_warped)
 
-    '''
+    
     # # Test: Apply blob detection
     # keypoints = detect_blobs(img_bgr, visualize=True, min_area=50, max_area=5000, threshold=10)
 
@@ -568,19 +568,19 @@ if __name__ == "__main__":
     # sam1_contours = run_SAM1(img_bgr1, SAM1_CHECKPOINT_PATH, SAM1_MODEL_TYPE, DEVICE)
     # print(f"SAM1 segmentation took {time.time() - start_time:.2f} seconds")
     
-    # ── SAM2 segmentation ────────────────────────────────────────────────────
-    SAM2_CHECKPOINT = "/Users/nova98/Documents/Nova/3d_localization/sam_checkpoints/sam2.1_hiera_tiny.pt"
-    SAM2_MODEL_TYPE = "tiny"  # 'tiny', 'small', 'base_plus', or 'large'
-    start_time = time.time()
-    DEVICE = "cpu"
-    sam2_mask_generator = load_sam2_model(SAM2_CHECKPOINT, model_type=SAM2_MODEL_TYPE, device=DEVICE)
-    sam2_masks = run_sam2_everything(img_bgr1, sam2_mask_generator)
-    result_bgr_sam2 = visualize_sam2_masks(img_bgr1, sam2_masks)
-    sam2_contours = sam2_masks_to_contours(sam2_masks)
-    print(f"SAM2 segmentation took {time.time() - start_time:.2f} seconds")
+    # # ── SAM2 segmentation ────────────────────────────────────────────────────
+    # SAM2_CHECKPOINT = "/Users/nova98/Documents/Nova/3d_localization/sam_checkpoints/sam2.1_hiera_tiny.pt"
+    # SAM2_MODEL_TYPE = "tiny"  # 'tiny', 'small', 'base_plus', or 'large'
+    # start_time = time.time()
+    # DEVICE = "cpu"
+    # sam2_mask_generator = load_sam2_model(SAM2_CHECKPOINT, model_type=SAM2_MODEL_TYPE, device=DEVICE)
+    # sam2_masks = run_sam2_everything(img_bgr1, sam2_mask_generator)
+    # result_bgr_sam2 = visualize_sam2_masks(img_bgr1, sam2_masks)
+    # sam2_contours = sam2_masks_to_contours(sam2_masks)
+    # print(f"SAM2 segmentation took {time.time() - start_time:.2f} seconds")
 
     # Choose which contours to use downstream (swap between sam1_contours / sam2_contours)
-    contours = sam2_contours
+    # contours = sam2_contours
 
     # Pose the contours in the original img_bgr (not cropped)
     contours_orig = warp_contours_to_original(contours, warped_roi_pts, roi_size_px=1000, img_bgr=img_warped, visualize=True)
@@ -600,7 +600,7 @@ if __name__ == "__main__":
 
     # Select and plot the 10 brightest pixels inside each filtered contour
     selected_pixels = select_bright_pixels(img_warped, filtered, num_pixels=10, visualize=True)
-    '''
+    
 
     # Map the pixels in millimeter scale.
     pixels_mm = map_pixels_to_mm(warped_roi_pts, selected_pixels, roi_size_mm=311.0, visualize=True, img=img_warped)
