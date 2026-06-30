@@ -15,11 +15,17 @@ from main import *
 
 import time
 
+'''
+Aruco detection module
+1. Clone the repository:
+    - git clone https://github.com/TabassumNova/Marker-detection.git
+2. Ensure the path to aruco_detection.py is correct in the import statement below.
+'''
 # Aruco detection
 import importlib.util
 spec = importlib.util.spec_from_file_location(
     "aruco_detection",
-    "/Users/nova98/Documents/Nova/Marker-detection/src/aruco_detection.py"
+    "/Users/nova98/Documents/Nova/Marker-detection/src/aruco_detection.py" # Update this path to the actual location of aruco_detection.py
 )
 aruco_detection = importlib.util.module_from_spec(spec)
 spec.loader.exec_module(aruco_detection)
@@ -38,112 +44,6 @@ def order_corners_top_left_clockwise(corners_xy):
 
     return np.array([top_left, top_right, bottom_right, bottom_left], dtype=np.float32)
 
-
-def create_optimal_camera_matrix(img_height, img_width):
-    """Create an optimal camera matrix based on image dimensions (no actual calibration).
-    
-    Args:
-        img_height (int): Image height in pixels.
-        img_width (int): Image width in pixels.
-    
-    Returns:
-        K (np.ndarray): 3x3 camera intrinsic matrix.
-        dist_coeffs (np.ndarray): Distortion coefficients (all zeros).
-    """
-    # Estimate focal length as the average of width and height
-    focal_length = (img_width + img_height) / 2.0
-    cx = img_width / 2.0
-    cy = img_height / 2.0
-    
-    K = np.array([
-        [focal_length, 0, cx],
-        [0, focal_length, cy],
-        [0, 0, 1]
-    ], dtype=np.float32)
-
-    dist_coeffs = np.zeros(5, dtype=np.float32)  # No distortion
-    
-    return K, dist_coeffs
-
-
-def estimate_aruco_poses(img_bgr, warped_marker_dict, marker_ids, marker_size_mm=60.0):
-    """Estimate 6-DOF poses for detected ArUco markers.
-    
-    Args:
-        img_bgr (np.ndarray): Input image in BGR format.
-        warped_marker_dict (dict): Marker ID -> corners from ArUco detection.
-        marker_ids (list): List of marker IDs to estimate pose for.
-        marker_size_mm (float): Physical size of the marker in mm.
-    
-    Returns:
-        poses (dict): {marker_id: {'rvec': rvec, 'tvec': tvec}}.
-        img_with_axes (np.ndarray): Image with 3D axes drawn for each marker.
-    """
-    img_height, img_width = img_bgr.shape[:2]
-    K, dist_coeffs = create_optimal_camera_matrix(img_height, img_width)
-    
-    # Define 3D marker corners in marker coordinate frame (top-left clockwise)
-    # Marker is centered at origin, lies in z=0 plane
-    marker_size = marker_size_mm / 2.0  # Half-size from center
-    object_points = np.array([
-        [-marker_size,  marker_size, 0],  # top-left
-        [ marker_size,  marker_size, 0],  # top-right
-        [ marker_size, -marker_size, 0],  # bottom-right
-        [-marker_size, -marker_size, 0],  # bottom-left
-    ], dtype=np.float32)
-    
-    poses = {}
-    img_with_axes = img_bgr.copy()
-    
-    for marker_id in marker_ids:
-        if marker_id not in warped_marker_dict:
-            continue
-        
-        # Get ordered corners
-        corners = warped_marker_dict[marker_id]
-        ordered_corners = order_corners_top_left_clockwise(corners)
-        image_points = ordered_corners.astype(np.float32)
-        
-        # Estimate pose
-        success, rvec, tvec = cv2.solvePnP(
-            object_points,
-            image_points,
-            K,
-            dist_coeffs,
-            useExtrinsicGuess=False,
-            flags=cv2.SOLVEPNP_ITERATIVE
-        )
-        
-        if success:
-            poses[marker_id] = {'rvec': rvec, 'tvec': tvec, 'success': True}
-            
-            # Draw 3D axes at marker origin
-            axis_length = marker_size_mm  # Length of axis in mm (50mm)
-            img_with_axes = cv2.drawFrameAxes(
-                img_with_axes,
-                K,
-                dist_coeffs,
-                rvec,
-                tvec,
-                axis_length,
-                thickness=2
-            )
-            
-            # Draw marker ID near the center
-            center = np.mean(image_points, axis=0).astype(int)
-            cv2.putText(
-                img_with_axes,
-                f"ID:{marker_id}",
-                tuple(center),
-                cv2.FONT_HERSHEY_SIMPLEX,
-                0.6,
-                (0, 255, 0),
-                2
-            )
-        else:
-            poses[marker_id] = {'success': False}
-    
-    return poses, img_with_axes
 
 
 def aruco_detection_and_mapping(path, aruco_ids):
@@ -164,7 +64,6 @@ def aruco_detection_and_mapping(path, aruco_ids):
     img_bgr1 = roi_cropped  # For subsequent processing, focus on the cropped ROI
 
     # Map the 4 corners of the middle Aruco markers in millimeter scale.
-
     selected_pixels = []
     selected_pixels_for_mapping = []
     marker_ids_found = []
