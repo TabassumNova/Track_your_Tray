@@ -1,3 +1,10 @@
+import sys
+from pathlib import Path
+
+REPO_ROOT = Path(__file__).resolve().parents[2]
+if str(REPO_ROOT) not in sys.path:
+    sys.path.insert(0, str(REPO_ROOT))
+
 import hylite
 from hylite import io
 import csv
@@ -6,12 +13,12 @@ import os
 import cv2
 import numpy as np
 import matplotlib.pyplot as plt
-from roi_detection import *
-from segmentation.sam_segmentation import *
-from segmentation.sam2_segmentation import *
-from visualization import *
-from segmentation.contour_detection import *
-from main import *
+from src.roi_detection import *
+from src.segmentation.sam_segmentation import *
+from src.segmentation.sam2_segmentation import *
+from src.visualization import *
+from src.segmentation.contour_detection import *
+# from main import *
 
 import time
 
@@ -58,7 +65,9 @@ def aruco_detection_and_mapping(path, aruco_ids):
     # CONSIDERED_MARKER = [65, 59, 60, 61, 58, 62, 57, 56, 70, 71, 72] # <-- Small black tray
     # CONSIDERED_MARKER = [68, 63, 64, 67]
     roi_pts = find_ROI(img_bgr, marker_dict, considered_markers=CONSIDERED_MARKER)
+    pass
     
+    '''
     # Crop ROI
     roi_cropped, img_warped, warped_roi_pts, warped_marker_dict = crop_roi_from_image(img_bgr, roi_pts, marker_dict, roi_size_px=1000, visualize=True)
     img_bgr1 = roi_cropped  # For subsequent processing, focus on the cropped ROI
@@ -128,12 +137,14 @@ def aruco_detection_and_mapping(path, aruco_ids):
 
     print(f"Mapped {len(pixels_mm)} middle Aruco corner points to mm scale.")
     print(f"Saved marker corner CSV: {csv_path}")
+    '''
+    
     
 
 if __name__ == "__main__":
     aruco_ids = [100, 101, 102, 103, 104, 105, 106, 107, 108, 109, 110, 111, 11, 3] 
     # aruco_ids = [101, 104] 
-    path = '/Users/nova98/Documents/Nova/Helios+/FX10/20260616/FX10_ArucoCube_10cm_pose11_2026-06-16_11-43-03/capture/FX10_ArucoCube_10cm_pose11_2026-06-16_11-43-03.hdr'
+    path = '/Users/nova98/Documents/Nova/Helios+/FX10/20260609/6cm_Cube/FX10_ArucoBoxWith3D_6cm_2026-06-09_09-20-17/capture/FX10_ArucoBoxWith3D_6cm_2026-06-09_09-20-17.hdr'
     # aruco_ids = [11]
     aruco_detection_and_mapping(path, aruco_ids)
     
