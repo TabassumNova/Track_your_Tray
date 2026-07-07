@@ -2,7 +2,7 @@ import cv2
 import numpy as np
 
 # Function to detect contours in an image using OpenCV
-def detect_contours(img_bgr, visualize=True):
+def detect_contours(img_bgr, visualisation=True):
     """
     Detect contours in a BGR image using OpenCV.
     Args:
@@ -19,7 +19,7 @@ def detect_contours(img_bgr, visualize=True):
     edges = cv2.Canny(gray, 100, 150, apertureSize=3)
     # Find contours
     contours, hierarchy = cv2.findContours(edges, cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_SIMPLE)
-    if visualize:
+    if visualisation:
         img_contours = img_bgr.copy()
         cv2.drawContours(img_contours, contours, -1, (0, 255, 0), 2)
         cv2.imshow('Contours', img_contours)
@@ -27,13 +27,13 @@ def detect_contours(img_bgr, visualize=True):
         cv2.destroyAllWindows()
     return contours, hierarchy
 
-def detect_blobs(img_bgr, visualize=True, min_area=50, max_area=5000, threshold=10):
+def detect_blobs(img_bgr, visualisation=True, min_area=50, max_area=5000, threshold=10):
     """
     Apply blob detection to the input image using OpenCV's SimpleBlobDetector.
 
     Args:
         img_bgr (np.ndarray): Input image (BGR or grayscale).
-        visualize (bool): If True, display the image with detected blobs.
+        visualisation (bool): If True, display the image with detected blobs.
         min_area (float): Minimum area of blobs to detect.
         max_area (float): Maximum area of blobs to detect.
         threshold (float): Minimum threshold for blob detection.
@@ -62,7 +62,7 @@ def detect_blobs(img_bgr, visualize=True, min_area=50, max_area=5000, threshold=
     detector = cv2.SimpleBlobDetector_create(params)
     keypoints = detector.detect(img_gray)
 
-    if visualize:
+    if visualisation:
         im_with_keypoints = cv2.drawKeypoints(
             img_bgr, keypoints, np.array([]), (0, 0, 255),
             cv2.DRAW_MATCHES_FLAGS_DRAW_RICH_KEYPOINTS
@@ -125,7 +125,7 @@ def edge_detection(image):
     cv2.destroyAllWindows()
 
 
-def filter_contours(img_bgr, contours, roi_pts, marker_dict, visualize=True):
+def filter_contours(img_bgr, contours, roi_pts, marker_dict, visualisation=True):
     """
     Filter contours to only those inside the ROI polygon, excluding contours
     that belong to Aruco markers.
@@ -136,7 +136,7 @@ def filter_contours(img_bgr, contours, roi_pts, marker_dict, visualize=True):
         roi_pts     (list):       Four corner points defining the ROI polygon.
         marker_dict (dict):       {marker_id: corners} from Aruco detection,
                                   where corners has shape (1, 4, 2).
-        visualize   (bool):       If True, display the filtered contours.
+        visualisation (bool):       If True, display the filtered contours.
 
     Returns:
         filtered (list): Contours inside the ROI and not on any Aruco marker.
@@ -177,7 +177,7 @@ def filter_contours(img_bgr, contours, roi_pts, marker_dict, visualize=True):
 
         filtered.append(cnt)
 
-    if visualize:
+    if visualisation:
         vis = img_bgr.copy()
         # Draw the ROI boundary
         # cv2.polylines(vis, [roi_poly], isClosed=True, color=(0, 255, 255), thickness=2)
@@ -190,13 +190,13 @@ def filter_contours(img_bgr, contours, roi_pts, marker_dict, visualize=True):
     return filtered
 
 
-def draw_bounding_boxes(img_bgr, contours, visualize=True):
+def draw_bounding_boxes(img_bgr, contours, visualisation=True):
     """
     Draw bounding boxes around the given contours and visualize them.
     Args:
         img_bgr (np.ndarray): Input image in BGR format.
         contours (list): List of contours to draw bounding boxes around.
-        visualize (bool): If True, display the image with bounding boxes.
+        visualisation (bool): If True, display the image with bounding boxes.
     Returns:
         img_with_boxes (np.ndarray): Image with bounding boxes drawn.
         boxes (list): List of bounding box coordinates (x, y, w, h).
@@ -207,7 +207,7 @@ def draw_bounding_boxes(img_bgr, contours, visualize=True):
         x, y, w, h = cv2.boundingRect(cnt)
         boxes.append((x, y, w, h))
         cv2.rectangle(img_with_boxes, (x, y), (x + w, y + h), (255, 0, 0), 2)
-    if visualize:
+    if visualisation:
         cv2.imshow('Bounding Boxes', img_with_boxes)
         cv2.waitKey(0)
         cv2.destroyAllWindows()

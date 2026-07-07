@@ -85,7 +85,7 @@ def find_ROI(image, marker_dict, considered_markers, visualisation=True):
     all_corners = []
     for marker_id, corners in marker_dict.items():
         if marker_id in considered_markers:
-            for i, pt in enumerate(corners[0]):
+            for i, pt in enumerate(corners):
                 all_corners.append({'id': marker_id, 'pt': pt})
 
     
@@ -177,7 +177,8 @@ def crop_roi_from_image(img_bgr, roi_pts, marker_dict, roi_size_px=400, visualis
     # Warp all marker corners
     warped_marker_dict = {}
     for marker_id, corners in marker_dict.items():
-        corners_arr = np.float32(corners)  # shape (1, 4, 2)
+        # corners_arr = np.float32(corners)  # shape (1, 4, 2)
+        corners_arr = np.float32(corners).reshape(-1, 1, 2)
         warped_corners = cv2.perspectiveTransform(corners_arr, M_full)
         warped_marker_dict[marker_id] = warped_corners
 

@@ -39,7 +39,13 @@ if __name__ == "__main__":
     image = io.load(path)
     img_bgr = plot_hyimage(image)
     # aruco marker detction
-    marker_dict = aruco_detection.getAruco(img_bgr)
+    marker_dict0 = aruco_detection.getAruco(img_bgr, aruco_dict_id=cv2.aruco.DICT_4X4_1000, visualisation=True)
+    CORNER = 'outer_corners'
+    # TODO: Create a dict with only specified 'CORNER' and the stucture of the dict 
+    # would be like {marker_id: np.array([[x1, y1], [x2, y2], [x3, y3], [x4, y4]])}
+    marker_dict = {k: v for k, v in marker_dict0.items() if CORNER in v}
+    marker_dict = {k: v[CORNER] for k, v in marker_dict.items()}
+    
     # # # roi detection
     CONSIDERED_MARKER = [34, 38, 39, 37, 35, 46, 45, 42, 49, 53, 43, 32, 74] # <-- Big black tray
     # CONSIDERED_MARKER = [65, 59, 60, 61, 58, 62, 57, 56, 70, 71, 72] # <-- Small black tray
@@ -47,7 +53,7 @@ if __name__ == "__main__":
     roi_pts = find_ROI(img_bgr, marker_dict, considered_markers=CONSIDERED_MARKER)
     
     # Crop ROI
-    roi_cropped, img_warped, warped_roi_pts, warped_marker_dict = crop_roi_from_image(img_bgr, roi_pts, marker_dict, roi_size_px=1000, visualize=True)
+    roi_cropped, img_warped, warped_roi_pts, warped_marker_dict = crop_roi_from_image(img_bgr, roi_pts, marker_dict, roi_size_px=1000, visualisation=True)
     img_bgr1 = roi_cropped  # For subsequent processing, focus on the cropped ROI
 
     # # # Select pixels from mouse click by user (for testing purposes)
@@ -61,7 +67,7 @@ if __name__ == "__main__":
     # corners = detect_harris_corners(img_bgr, visualize=True, block_size=2, ksize=3, k=0.04, threshold_rel=0.01)
     
     # Contour detection
-    contours, hierarchy = detect_contours(img_bgr1, visualize=True)
+    contours, hierarchy = detect_contours(img_bgr1, visualisation=True)
 
     
     # # ── SAM1 segmentation ────────────────────────────────────────────────────
@@ -87,10 +93,10 @@ if __name__ == "__main__":
     # contours = sam2_contours
 
     # Pose the contours in the original img_bgr (not cropped)
-    contours_orig = warp_contours_to_original(contours, warped_roi_pts, roi_size_px=1000, img_bgr=img_warped, visualize=True)
+    contours_orig = warp_contours_to_original(contours, warped_roi_pts, roi_size_px=1000, img_bgr=img_warped, visualisation=True)
 
     # Filter contours: inside ROI only, Aruco markers excluded
-    filtered = filter_contours(img_warped, contours_orig, warped_roi_pts, warped_marker_dict, visualize=True)
+    filtered = filter_contours(img_warped, contours_orig, warped_roi_pts, warped_marker_dict, visualisation=True)
     print(f"Contours after filtering: {len(filtered)}")
 
     # Select bright pixels within each filtered contour
@@ -100,12 +106,12 @@ if __name__ == "__main__":
 
 
     # Draw bounding boxes around filtered contours
-    img_with_boxes, boxes = draw_bounding_boxes(img_warped, filtered, visualize=True)
+    img_with_boxes, boxes = draw_bounding_boxes(img_warped, filtered, visualisation=True)
 
     # Select and plot the 10 brightest pixels inside each filtered contour
-    selected_pixels = select_bright_pixels(img_warped, filtered, num_pixels=10, visualize=True)
+    selected_pixels = select_bright_pixels(img_warped, filtered, num_pixels=10, visualisation=True)
     
 
     # Map the pixels in millimeter scale.
-    pixels_mm = map_pixels_to_mm(warped_roi_pts, selected_pixels, roi_size_mm=318.0, visualize=True, img=img_warped)
+    pixels_mm = map_pixels_to_mm(warped_roi_pts, selected_pixels, roi_size_mm=318.0, visualisation=True, img=img_warped)
 

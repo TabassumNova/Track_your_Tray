@@ -30,3 +30,7 @@ Algorithms/3d localization (2).key
 Algorithms/3d localization.key
 src/middle_aruco_corners_mm.csv
 src/extra_analysis/middle_aruco_corners_mm.csv
+detected_inner_corners.jpg
+detected_outer_corners.jpg
+src/detected_inner_corners.jpg
+src/detected_outer_corners.jpg

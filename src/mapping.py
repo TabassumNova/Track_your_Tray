@@ -94,7 +94,7 @@ def map_pixels_to_mm(roi_pts, selected_pixels, roi_size_mm=325.0, visualisation=
     return pixels_mm
 
 
-def warp_contours_to_original(contours, roi_pts, roi_size_px=400, img_bgr=None, visualize=True):
+def warp_contours_to_original(contours, roi_pts, roi_size_px=400, img_bgr=None, visualisation=True):
     """
     Warp contours from the cropped ROI image back to the original image using inverse perspective transform.
 
@@ -103,7 +103,7 @@ def warp_contours_to_original(contours, roi_pts, roi_size_px=400, img_bgr=None, 
         roi_pts (list): Four corner points of the ROI in the original image (TL, TR, BR, BL).
         roi_size_px (int): Size of the cropped ROI image (width/height in px).
         img_bgr (np.ndarray): Original image to visualize on (optional).
-        visualize (bool): If True, display the contours on the original image.
+        visualisation (bool): If True, display the contours on the original image.
 
     Returns:
         contours_orig (list): Contours mapped to the original image coordinates.
@@ -124,7 +124,7 @@ def warp_contours_to_original(contours, roi_pts, roi_size_px=400, img_bgr=None, 
         cnt_warped = cv2.perspectiveTransform(cnt, Minv)
         contours_orig.append(cnt_warped.astype(np.int32))
 
-    if visualize and img_bgr is not None:
+    if visualisation and img_bgr is not None:
         vis = img_bgr.copy()
         cv2.drawContours(vis, contours_orig, -1, (0, 0, 255), 2)
         cv2.imshow("Contours posed in original image", vis)

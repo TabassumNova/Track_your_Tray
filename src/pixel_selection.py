@@ -1,7 +1,7 @@
 import cv2
 import numpy as np
 
-def select_bright_pixels(img_bgr, contours, num_pixels=10, visualize=False):
+def select_bright_pixels(img_bgr, contours, num_pixels=10, visualisation=False):
     """
     For each contour, select the top N brightest pixels inside the contour (by grayscale value).
     Optionally plot them in yellow with larger size.
@@ -9,13 +9,13 @@ def select_bright_pixels(img_bgr, contours, num_pixels=10, visualize=False):
         img_bgr (np.ndarray): Input image in BGR format.
         contours (list): List of contours (as from cv2.findContours).
         num_pixels (int): Number of pixels to select per contour.
-        visualize (bool): If True, plot the selected pixels on the image.
+        visualisation (bool): If True, plot the selected pixels on the image.
     Returns:
         List of lists: Each sublist contains (x, y, value) tuples for the selected pixels in a contour.
     """
     gray = cv2.cvtColor(img_bgr, cv2.COLOR_BGR2GRAY)
     selected_pixels = []
-    img_pixels = img_bgr.copy() if visualize else None
+    img_pixels = img_bgr.copy() if visualisation else None
     for cnt in contours:
         # Create a mask for the contour
         mask = np.zeros(gray.shape, dtype=np.uint8)
@@ -47,10 +47,10 @@ def select_bright_pixels(img_bgr, contours, num_pixels=10, visualize=False):
         for idx in bright_idx[:num_pixels]:
             x, y, val = center_xs[idx], center_ys[idx], center_values[idx]
             chosen.append((x, y, val))
-            if visualize:
+            if visualisation:
                 cv2.circle(img_pixels, (int(x), int(y)), radius=5, color=(0, 255, 255), thickness=-1)
         selected_pixels.append(chosen)
-    if visualize:
+    if visualisation:
         cv2.imshow('Brightest Pixels (Yellow)', img_pixels)
         cv2.waitKey(0)
         cv2.destroyAllWindows()
