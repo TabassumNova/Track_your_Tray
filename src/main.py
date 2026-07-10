@@ -35,7 +35,7 @@ spec.loader.exec_module(aruco_detection)
 if __name__ == "__main__":
     print("Starting processing1...")
     # image load
-    path = '/Users/nova98/Documents/Nova/Helios+/FX10/20260323/FX10_Aruco_random_2026-03-23_13-13-47_nicd_with_objects/capture/FX10_Aruco_random_2026-03-23_13-13-47.hdr'
+    path = '/Users/nova98/Documents/Nova/Helios+/FX10/20260629/FX10_ArucoCubeAll_test2_2026-06-29_09-35-48/capture/FX10_ArucoCubeAll_test1_2026-06-29_09-35-48.hdr'
     image = io.load(path)
     img_bgr = plot_hyimage(image)
     # aruco marker detction

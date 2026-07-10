@@ -5,3 +5,6 @@ hylite
 segment-anything
 torch
 torchvision
+# For point cloud analysis
+open3d
+pyransac3d

@@ -194,6 +194,7 @@ def crop_roi_from_image(img_bgr, roi_pts, marker_dict, roi_size_px=400, visualis
             for pt in corners[0]:
                 cv2.circle(img_warped_vis, tuple(np.int32(pt)), 4, (255, 0, 0), -1)
 
+        cv2.imwrite("cropped_ROI.png", roi_cropped)
         cv2.imshow("Cropped ROI", roi_cropped)
         cv2.imshow("Warped Full Image", img_warped_vis)
         cv2.waitKey(0)
