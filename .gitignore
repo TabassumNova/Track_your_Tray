@@ -35,3 +35,4 @@ detected_outer_corners.jpg
 src/detected_inner_corners.jpg
 src/detected_outer_corners.jpg
 cropped_ROI.png
+src/sensor_axis_distortion_analysis/y_error_normalized_combined.png

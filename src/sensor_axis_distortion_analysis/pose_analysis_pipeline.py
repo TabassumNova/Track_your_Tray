@@ -41,12 +41,13 @@ def order_corners_top_left_clockwise(corners_xy):
     return np.array([top_left, top_right, bottom_right, bottom_left], dtype=np.float32)
 
 class PoseAnalysisPipeline:
-    def __init__(self, dataset_path, tray_size, tray_aruco_ids, measurement_aruco_ids, 
+    def __init__(self, dataset_path, search_keyword, tray_size, tray_aruco_ids, measurement_aruco_ids, 
                  cube_aruco_id, cube_square_size, cube_marker_size, 
                  tray_square_size, tray_marker_size, visualisation=False):
         '''
         Args:
             dataset_path (str): Path to the dataset containing pose folders.
+            search_keyword (str): Keyword to identify pose folders (default is "pose").
             tray_size (int): Size of the square shaped tray in mm (width, height).
             tray_aruco_ids (list): List of Aruco IDs for the tray.
             measurement_aruco_ids (list): List of Aruco IDs for measurements.
@@ -57,6 +58,7 @@ class PoseAnalysisPipeline:
             tray_marker_size (float): Size of the tray marker in mm.
         '''
         self.dataset_path = dataset_path
+        self.search_keyword = search_keyword
         self.tray_aruco_ids = tray_aruco_ids
         self.measurement_aruco_ids = measurement_aruco_ids
         self.cube_aruco_id = cube_aruco_id
@@ -69,11 +71,12 @@ class PoseAnalysisPipeline:
         self.actual_tray_size = tray_size
         self.considered_tray_size = self.actual_tray_size - 2*self.tray_square_marker_gap # After removing the white 
                                                                                             # border of the aruco
-        self.pose_path_dict = load_all_poses_from_folder(dataset_path)
+        self.pose_path_dict = load_all_poses_from_folder(self.dataset_path, self.search_keyword)
 
         #Specific for the given tray. See the reference image. Applies for 12 poses
         offset = self.cube_square_marker_gap - self.tray_square_marker_gap
-        self.true_X = 93 + 2*self.tray_square_size + offset
+        # self.true_X = 93 + 2*self.tray_square_size + offset # --> For big tray
+        self.true_X = 134 - self.cube_square_size + offset # --> For small tray
         self.true_Y_dict = {1: 0*self.tray_square_size + offset,
                             2: 1*self.tray_square_size + offset,
                             3: 2*self.tray_square_size + offset,
@@ -100,7 +103,10 @@ class PoseAnalysisPipeline:
             img_bgr = plot_hyimage(image, visualisation=self.visualisation)
             
             # aruco marker detction
-            marker_dict = aruco_detection.getAruco(img_bgr, visualisation=self.visualisation)
+            marker_dict0 = aruco_detection.getAruco(img_bgr, aruco_dict_id=cv2.aruco.DICT_4X4_1000, visualisation=True)
+            CORNER = 'inner_corners'
+            marker_dict = {k: v for k, v in marker_dict0.items() if CORNER in v}
+            marker_dict = {k: v[CORNER] for k, v in marker_dict.items()}
             
             # roi detection
             roi_pts = find_ROI(img_bgr, marker_dict, considered_markers=self.tray_aruco_ids, visualisation=self.visualisation)
@@ -177,7 +183,8 @@ class PoseAnalysisPipeline:
         with open(metadata_path, 'w') as f:
             json.dump(metadata, f, indent=4)
 
-        # Plot pose index vs x_error and y_error in seperate 2 plots
+
+        
         if not self.pose_error_dict:
             raise ValueError("No pose errors found. Run start_analysis() before plot_errors().")
 
@@ -185,6 +192,14 @@ class PoseAnalysisPipeline:
         x_errors = [self.pose_error_dict[idx][0] for idx in pose_indices]
         y_errors = [self.pose_error_dict[idx][1] for idx in pose_indices]
 
+        # Save the errors in csv file
+        csv_path = os.path.join(output_path, 'pose_errors.csv')
+        with open(csv_path, 'w') as f:
+            f.write("pose_index,x_error,y_error\n")
+            for idx in pose_indices:
+                f.write(f"{idx},{self.pose_error_dict[idx][0]},{self.pose_error_dict[idx][1]}\n")
+
+        # Plot pose index vs x_error and y_error in seperate 2 plots
         plt.figure(figsize=(9, 5))
         plt.plot(pose_indices, x_errors, marker='o', linewidth=2)
         plt.title('Pose Index vs X Error')

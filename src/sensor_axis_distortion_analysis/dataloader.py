@@ -16,11 +16,11 @@ import re
 from hylite import io
 
 
-def load_all_poses_from_folder(dataset_path):
+def load_all_poses_from_folder(dataset_path, search_keyword="pose"):
     '''
-    TODO:
-    - Search for the 'pose' keyword in the folder name
-    - store the folder path in pose_dict
+    Args:
+        dataset_path (str): Path to the dataset folder containing pose subfolders.
+        search_keyword (str): Keyword to identify pose folders (default is "pose").
     '''
     pose_path_dict = {}
     pose_entries = []
@@ -33,7 +33,7 @@ def load_all_poses_from_folder(dataset_path):
         if not child.is_dir():
             continue
 
-        match = re.search(r"pose\D*(\d+)", child.name, flags=re.IGNORECASE)
+        match = re.search(rf"{search_keyword}\D*(\d+)", child.name, flags=re.IGNORECASE)
         if match:
             pose_idx = int(match.group(1))
             capture_dir = child / "capture"
