@@ -35,16 +35,17 @@ spec.loader.exec_module(aruco_detection)
 if __name__ == "__main__":
     print("Starting processing1...")
     # image load
-    path = '/Users/nova98/Documents/Nova/Helios+/FX10/20260629/FX10_ArucoCubeAll_test2_2026-06-29_09-35-48/capture/FX10_ArucoCubeAll_test1_2026-06-29_09-35-48.hdr'
+    path = '/Users/nova98/Documents/Nova/Helios+/FX10/20260323/FX10_Aruco_random_2026-03-23_08-45-11/capture/FX10_Aruco_random_2026-03-23_07-45-43.hdr'
     image = io.load(path)
     img_bgr = plot_hyimage(image)
     # aruco marker detction
     marker_dict0 = aruco_detection.getAruco(img_bgr, aruco_dict_id=cv2.aruco.DICT_4X4_1000, visualisation=True)
     CORNER = 'outer_corners'
-    # TODO: Create a dict with only specified 'CORNER' and the stucture of the dict 
-    # would be like {marker_id: np.array([[x1, y1], [x2, y2], [x3, y3], [x4, y4]])}
     marker_dict = {k: v for k, v in marker_dict0.items() if CORNER in v}
     marker_dict = {k: v[CORNER] for k, v in marker_dict.items()}
+    # remove marker when the corners are None
+    marker_dict = {k: v for k, v in marker_dict.items() if v is not None}
+    
     
     # # # roi detection
     CONSIDERED_MARKER = [34, 38, 39, 37, 35, 46, 45, 42, 49, 53, 43, 32, 74] # <-- Big black tray
@@ -67,30 +68,24 @@ if __name__ == "__main__":
     # corners = detect_harris_corners(img_bgr, visualize=True, block_size=2, ksize=3, k=0.04, threshold_rel=0.01)
     
     # Contour detection
-    contours, hierarchy = detect_contours(img_bgr1, visualisation=True)
+    # contours, hierarchy = detect_contours(img_bgr1, visualisation=True)
 
     
-    # # ── SAM1 segmentation ────────────────────────────────────────────────────
+    # # # ── SAM1 segmentation ────────────────────────────────────────────────────
     # SAM1_CHECKPOINT_PATH = "/Users/nova98/Documents/Nova/3d_localization/sam_checkpoints"
     # SAM1_MODEL_TYPE = "vit_b"   # 'vit_h', 'vit_l', or 'vit_b'
     # DEVICE = "cpu"              # 'cuda' if GPU available
-    # start_time = time.time()
     # sam1_contours = run_SAM1(img_bgr1, SAM1_CHECKPOINT_PATH, SAM1_MODEL_TYPE, DEVICE)
-    # print(f"SAM1 segmentation took {time.time() - start_time:.2f} seconds")
+    
     
     # # ── SAM2 segmentation ────────────────────────────────────────────────────
-    # SAM2_CHECKPOINT = "/Users/nova98/Documents/Nova/3d_localization/sam_checkpoints/sam2.1_hiera_tiny.pt"
-    # SAM2_MODEL_TYPE = "tiny"  # 'tiny', 'small', 'base_plus', or 'large'
-    # start_time = time.time()
-    # DEVICE = "cpu"
-    # sam2_mask_generator = load_sam2_model(SAM2_CHECKPOINT, model_type=SAM2_MODEL_TYPE, device=DEVICE)
-    # sam2_masks = run_sam2_everything(img_bgr1, sam2_mask_generator)
-    # result_bgr_sam2 = visualize_sam2_masks(img_bgr1, sam2_masks)
-    # sam2_contours = sam2_masks_to_contours(sam2_masks)
-    # print(f"SAM2 segmentation took {time.time() - start_time:.2f} seconds")
+    SAM2_CHECKPOINT = "/Users/nova98/Documents/Nova/3d_localization/sam_checkpoints/sam2.1_hiera_tiny.pt"
+    SAM2_MODEL_TYPE = "tiny"  # 'tiny', 'small', 'base_plus', or 'large'
+    DEVICE = "cpu"
+    sam2_countours = run_SAM2(SAM2_CHECKPOINT, SAM2_MODEL_TYPE, DEVICE, img_bgr1)
 
     # Choose which contours to use downstream (swap between sam1_contours / sam2_contours)
-    # contours = sam2_contours
+    contours = sam2_countours
 
     # Pose the contours in the original img_bgr (not cropped)
     contours_orig = warp_contours_to_original(contours, warped_roi_pts, roi_size_px=1000, img_bgr=img_warped, visualisation=True)

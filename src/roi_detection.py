@@ -84,7 +84,7 @@ def find_ROI(image, marker_dict, considered_markers, visualisation=True):
     # Flatten all corners for only considered markers
     all_corners = []
     for marker_id, corners in marker_dict.items():
-        if marker_id in considered_markers:
+        if marker_id in considered_markers and corners is not None:
             for i, pt in enumerate(corners):
                 all_corners.append({'id': marker_id, 'pt': pt})
 

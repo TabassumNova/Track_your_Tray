@@ -3,6 +3,7 @@ SAM (Segment Anything Model) - Automatic Everything Mode
 Segments all objects in an image automatically without any prompts.
 """
 import os
+from time import time
 import cv2
 import numpy as np
 import matplotlib.pyplot as plt
@@ -112,7 +113,7 @@ def run_SAM1(img, checkpoint_folder, model_type, device):
     Returns:
         sam1_contours (list): List of contours detected by SAM1.
     '''
-    
+    start_time = time.time()
     base_dir = checkpoint_folder
     checkpoint_file = None
     model_type_lower = model_type.lower()
@@ -125,5 +126,6 @@ def run_SAM1(img, checkpoint_folder, model_type, device):
     sam1_masks = run_sam_everything(img, sam1_mask_generator)
     visualize_sam_masks(img, sam1_masks)
     sam1_contours = masks_to_contours(sam1_masks)
+    print(f"SAM1 segmentation took {time.time() - start_time:.2f} seconds")
     return sam1_contours
 

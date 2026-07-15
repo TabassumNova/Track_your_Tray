@@ -126,6 +126,16 @@ def sam2_masks_to_contours(masks):
             all_contours.append(largest)
     return all_contours
 
+def run_SAM2(checkpoint_path, model_type, device, img_bgr1):
+    start_time = time.time()
+    sam2_mask_generator = load_sam2_model(checkpoint_path, model_type=model_type, device=device)
+    sam2_masks = run_sam2_everything(img_bgr1, sam2_mask_generator)
+    result_bgr_sam2 = visualize_sam2_masks(img_bgr1, sam2_masks)
+    sam2_contours = sam2_masks_to_contours(sam2_masks)
+    print(f"SAM2 segmentation took {time.time() - start_time:.2f} seconds")
+
+    return sam2_contours
+
 
 if __name__ == "__main__":
     import os
