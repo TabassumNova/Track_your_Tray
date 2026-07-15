@@ -226,25 +226,35 @@ def filter_contours(img_bgr, contours, roi_pts, marker_dict, visualisation=True)
     return filtered
 
 
-def draw_bounding_boxes(img_bgr, contours, visualisation=True):
+def draw_bounding_boxes(img_bgr, contours, visualisation=True, box_color=(0, 0, 255), box_thickness=2):
     """
-    Draw bounding boxes around the given contours and visualize them.
+    Draw bounding boxes around contours and visualize them.
+
     Args:
-        img_bgr (np.ndarray): Input image in BGR format.
+        img_bgr (np.ndarray): Input image in BGR format (or grayscale).
         contours (list): List of contours to draw bounding boxes around.
         visualisation (bool): If True, display the image with bounding boxes.
+        box_color (tuple): Bounding-box color in BGR format.
+        box_thickness (int): Bounding-box line thickness.
+
     Returns:
         img_with_boxes (np.ndarray): Image with bounding boxes drawn.
         boxes (list): List of bounding box coordinates (x, y, w, h).
     """
-    img_with_boxes = img_bgr.copy()
+    if img_bgr.ndim == 2:
+        img_with_boxes = cv2.cvtColor(img_bgr, cv2.COLOR_GRAY2BGR)
+    else:
+        img_with_boxes = img_bgr.copy()
+
     boxes = []
     for cnt in contours:
         x, y, w, h = cv2.boundingRect(cnt)
         boxes.append((x, y, w, h))
-        cv2.rectangle(img_with_boxes, (x, y), (x + w, y + h), (255, 0, 0), 2)
+        cv2.rectangle(img_with_boxes, (x, y), (x + w, y + h), box_color, box_thickness)
+
     if visualisation:
         cv2.imshow('Bounding Boxes', img_with_boxes)
         cv2.waitKey(0)
         cv2.destroyAllWindows()
+
     return img_with_boxes, boxes

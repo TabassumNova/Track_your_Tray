@@ -56,14 +56,6 @@ if __name__ == "__main__":
     SAM2_MODEL_TYPE = "tiny"  # 'tiny', 'small', 'base_plus', or 'large'
     DEVICE = "cpu"
     sam2_countours = run_SAM2(SAM2_CHECKPOINT, SAM2_MODEL_TYPE, DEVICE, hsi_img)
-    
-    # # Step 6: Remove the contours that are very low in height map
-    # filtered_contours = filter_contours_by_height(
-    #     height_map=height_map,
-    #     contours=sam2_countours,
-    #     low_percentile=25.0,
-    #     min_valid_ratio=0.2,
-    # )
 
     # Step 6: Remove the contours that are very near to the border
     filtered_contours = filter_border_contours(
@@ -74,3 +66,6 @@ if __name__ == "__main__":
     print(f"Contours after border filtering: {len(filtered_contours)}/{len(sam2_countours)}")
     # Visualize the filtered contours on the original HSI image
     show_filtered_contours_on_hsi(hsi_img, filtered_contours)
+
+    # Step 7: Create bounding boxes around filtered contours
+    img_with_boxes, boxes = draw_bounding_boxes(hsi_img, filtered_contours, visualisation=True)
