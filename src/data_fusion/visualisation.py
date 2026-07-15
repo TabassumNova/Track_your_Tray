@@ -2,6 +2,7 @@ import cv2
 import matplotlib.pyplot as plt
 from matplotlib.cm import ScalarMappable
 from matplotlib.colors import Normalize
+import numpy as np
 
 
 def display_heatmap_with_colorbar(fused_heatmap, z_min, z_max):

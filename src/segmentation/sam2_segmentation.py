@@ -10,6 +10,7 @@ import cv2
 import numpy as np
 from sam2.build_sam import build_sam2
 from sam2.automatic_mask_generator import SAM2AutomaticMaskGenerator
+import time
 
 
 # Map of human-readable model type names to their Hydra config names.

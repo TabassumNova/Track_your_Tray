@@ -7,9 +7,15 @@ import importlib
 from pathlib import Path
 from matplotlib import pyplot as plt
 
+# Ensure project root is importable when running this file directly.
+PROJECT_ROOT = Path(__file__).resolve().parents[2]
+if str(PROJECT_ROOT) not in sys.path:
+    sys.path.insert(0, str(PROJECT_ROOT))
+
 from dataloader import *
 from projection import *
 from visualisation import *
+from src.segmentation.sam2_segmentation import *
 
 CLOUD_ANALYSIS_SRC = Path("/Users/nova98/Documents/Nova/cloud_analysis/src")
 if str(CLOUD_ANALYSIS_SRC) not in sys.path:
@@ -42,3 +48,10 @@ if __name__ == "__main__":
 
     # Step 4: Display with colorbar showing height values
     display_heatmap_with_colorbar(fused_heatmap, z_min, z_max)
+
+    # Step 5: Contours detection on HSI image
+    # # ── SAM2 segmentation ────────────────────────────────────────────────────
+    SAM2_CHECKPOINT = "/Users/nova98/Documents/Nova/3d_localization/sam_checkpoints/sam2.1_hiera_tiny.pt"
+    SAM2_MODEL_TYPE = "tiny"  # 'tiny', 'small', 'base_plus', or 'large'
+    DEVICE = "cpu"
+    sam2_countours = run_SAM2(SAM2_CHECKPOINT, SAM2_MODEL_TYPE, DEVICE, hsi_img)
