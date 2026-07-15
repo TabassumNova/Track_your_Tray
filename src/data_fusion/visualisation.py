@@ -36,3 +36,37 @@ def display_heatmap_with_colorbar(fused_heatmap, z_min, z_max):
     
     plt.tight_layout()
     plt.show()
+
+
+def show_filtered_contours_on_hsi(hsi_img, contours, title="Filtered Contours on HSI", line_color=(0, 255, 0), line_width=2):
+    """Display filtered contours overlayed on the HSI grayscale image.
+
+    Args:
+        hsi_img (np.ndarray): Grayscale HSI image (H, W) or BGR image (H, W, 3).
+        contours (list): Contours to draw (OpenCV contour format).
+        title (str): Plot title.
+        line_color (tuple): Contour color in BGR.
+        line_width (int): Contour line thickness.
+
+    Returns:
+        np.ndarray: BGR image with contours drawn.
+    """
+    if hsi_img is None:
+        raise ValueError("hsi_img must be a valid image array")
+
+    if hsi_img.ndim == 2:
+        vis = cv2.cvtColor(hsi_img, cv2.COLOR_GRAY2BGR)
+    else:
+        vis = hsi_img.copy()
+
+    if contours is not None and len(contours) > 0:
+        cv2.drawContours(vis, contours, -1, line_color, line_width)
+
+    plt.figure(figsize=(10, 8))
+    plt.imshow(cv2.cvtColor(vis, cv2.COLOR_BGR2RGB))
+    plt.title(title, fontsize=14, fontweight="bold")
+    plt.axis("off")
+    plt.tight_layout()
+    plt.show()
+
+    return vis

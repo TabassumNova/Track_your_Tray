@@ -124,6 +124,42 @@ def edge_detection(image):
     cv2.waitKey(0)
     cv2.destroyAllWindows()
 
+def filter_border_contours(contours, img_shape, border_margin=20):
+    '''
+    Filter out the countours that touch or very near to the border
+    Args:
+        contours (list): List of contours to filter.
+        img_shape (tuple): Shape of the image (height, width).
+        border_margin (int): Margin from the border to consider for filtering.
+    Returns:
+        list: Filtered contours that do not touch the border.
+    
+    '''
+    
+    if contours is None or len(contours) == 0:
+        return []
+
+    h, w = img_shape[:2]
+    filtered = []
+
+    for cnt in contours:
+        x, y, cw, ch = cv2.boundingRect(cnt)
+
+        # Reject contours touching or very close to the image border.
+        touches_left = x <= border_margin
+        touches_top = y <= border_margin
+        touches_right = (x + cw) >= (w - border_margin)
+        touches_bottom = (y + ch) >= (h - border_margin)
+
+        if touches_left or touches_top or touches_right or touches_bottom:
+            continue
+
+        filtered.append(cnt)
+
+    return filtered
+
+
+
 
 def filter_contours(img_bgr, contours, roi_pts, marker_dict, visualisation=True):
     """
