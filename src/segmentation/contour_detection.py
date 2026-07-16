@@ -226,9 +226,9 @@ def filter_contours(img_bgr, contours, roi_pts, marker_dict, visualisation=True)
     return filtered
 
 
-def draw_bounding_boxes(img_bgr, contours, visualisation=True, box_color=(0, 0, 255), box_thickness=2):
+def generate_bounding_boxes(img_bgr, contours, visualisation=True, box_color=(0, 0, 255), box_thickness=2):
     """
-    Draw bounding boxes around contours and visualize them.
+    Generate bounding boxes around contours and visualize them.
 
     Args:
         img_bgr (np.ndarray): Input image in BGR format (or grayscale).
