@@ -80,7 +80,7 @@ if __name__ == "__main__":
     
     
     # # ── SAM2 segmentation ────────────────────────────────────────────────────
-    SAM2_CHECKPOINT = "/Users/nova98/Documents/Nova/3d_localization/sam_checkpoints/sam2.1_hiera_tiny.pt"
+    SAM2_CHECKPOINT = "/Users/nova98/Documents/Nova/Track_your_Tray/sam_checkpoints/sam2.1_hiera_tiny.pt"
     SAM2_MODEL_TYPE = "tiny"  # 'tiny', 'small', 'base_plus', or 'large'
     DEVICE = "cpu"
     sam2_countours = run_SAM2(SAM2_CHECKPOINT, SAM2_MODEL_TYPE, DEVICE, img_bgr1)
