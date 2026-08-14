@@ -3,7 +3,7 @@ SAM (Segment Anything Model) - Automatic Everything Mode
 Segments all objects in an image automatically without any prompts.
 """
 import os
-from time import time
+import time
 import cv2
 import numpy as np
 import matplotlib.pyplot as plt

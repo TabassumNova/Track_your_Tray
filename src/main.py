@@ -35,7 +35,7 @@ spec.loader.exec_module(aruco_detection)
 if __name__ == "__main__":
     print("Starting processing1...")
     # image load
-    path = '/Users/nova98/Documents/Nova/Helios+/FX10/20260323/FX10_Aruco_random_2026-03-23_08-45-11/capture/FX10_Aruco_random_2026-03-23_07-45-43.hdr'
+    path = '/Users/nova98/Documents/Nova/Helios+/FX10/20260805/FX10_obj8_pos_12_25_with3dcubes_2026-08-05_11-44-03/capture/FX10_obj8_pos_12_25_with3dcubes_2026-08-05_11-44-03.hdr'
     image = io.load(path)
     img_bgr = plot_hyimage(image)
     # aruco marker detction
@@ -48,8 +48,9 @@ if __name__ == "__main__":
     
     
     # # # roi detection
-    CONSIDERED_MARKER = [34, 38, 39, 37, 35, 46, 45, 42, 49, 53, 43, 32, 74] # <-- Big black tray
+    # CONSIDERED_MARKER = [34, 38, 39, 37, 35, 46, 45, 42, 49, 53, 43, 32, 74] # <-- Big black tray
     # CONSIDERED_MARKER = [65, 59, 60, 61, 58, 62, 57, 56, 70, 71, 72] # <-- Small black tray
+    CONSIDERED_MARKER = [33,32,27,31,30,29,24,26] # <-- Small black tray2
     # CONSIDERED_MARKER = [68, 63, 64, 67]
     roi_pts = find_ROI(img_bgr, marker_dict, considered_markers=CONSIDERED_MARKER)
     
@@ -100,13 +101,13 @@ if __name__ == "__main__":
     #     print(f"Contour {i}: {pixels}")
 
 
-    # Draw bounding boxes around filtered contours
-    img_with_boxes, boxes = draw_bounding_boxes(img_warped, filtered, visualisation=True)
+    # # Draw bounding boxes around filtered contours
+    # img_with_boxes, boxes = draw_bounding_boxes(img_warped, filtered, visualisation=True)
 
-    # Select and plot the 10 brightest pixels inside each filtered contour
-    selected_pixels = select_bright_pixels(img_warped, filtered, num_pixels=10, visualisation=True)
+    # # Select and plot the 10 brightest pixels inside each filtered contour
+    # selected_pixels = select_bright_pixels(img_warped, filtered, num_pixels=10, visualisation=True)
     
 
-    # Map the pixels in millimeter scale.
-    pixels_mm = map_pixels_to_mm(warped_roi_pts, selected_pixels, roi_size_mm=318.0, visualisation=True, img=img_warped)
+    # # Map the pixels in millimeter scale.
+    # pixels_mm = map_pixels_to_mm(warped_roi_pts, selected_pixels, roi_size_mm=318.0, visualisation=True, img=img_warped)
 

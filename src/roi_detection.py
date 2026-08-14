@@ -5,7 +5,7 @@ import numpy as np
 import cv2
 
 
-def get_extreme_line_endpoints(all_corners, mode, side, threshold=10):
+def get_extreme_line_endpoints(all_corners, mode, side, threshold=15):
     """
     all_corners: list of dicts with 'pt' key
     mode: 'horizontal' or 'vertical'

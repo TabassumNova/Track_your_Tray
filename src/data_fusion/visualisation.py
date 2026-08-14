@@ -36,6 +36,7 @@ def display_heatmap_with_colorbar(fused_heatmap, z_min, z_max):
     
     plt.tight_layout()
     plt.show()
+    plt.close()
 
 
 def show_filtered_contours_on_hsi(hsi_img, contours, title="Filtered Contours on HSI", line_color=(0, 255, 0), line_width=2):
@@ -68,5 +69,6 @@ def show_filtered_contours_on_hsi(hsi_img, contours, title="Filtered Contours on
     plt.axis("off")
     plt.tight_layout()
     plt.show()
+    plt.close()
 
     return vis
