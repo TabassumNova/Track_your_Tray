@@ -42,6 +42,9 @@
 ## Sensor axis distortion analysis
 > check [here](src/sensor_axis_distortion_analysis/)
 
+## Streamlit app run
+- python3 -m streamlit run ./app/streamlit_app.py
+
 
 
 

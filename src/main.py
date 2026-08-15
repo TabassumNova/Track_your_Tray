@@ -36,7 +36,7 @@ spec.loader.exec_module(aruco_detection)
 if __name__ == "__main__":
     print("Starting processing1...")
     # image load
-    path = '/Users/nova98/Documents/Nova/Helios+/FX10/20260805/FX10_obj6_pos_20_11_2026-08-05_11-34-32/capture/FX10_obj6_pos_20_11_2026-08-05_11-34-32.hdr'
+    path = '/Users/nova98/Documents/Nova/Helios+/FX10/20260805/FX10_obj8_pos_16_9_2026-08-05_12-03-25/capture/FX10_obj8_pos_16_9_2026-08-05_12-03-25.hdr'
     image = io.load(path)
     img_bgr = plot_hyimage(image)
     # aruco marker detction
@@ -54,11 +54,12 @@ if __name__ == "__main__":
     # CONSIDERED_MARKER = [33,32,27,31,30,29,24,26] # <-- Small black tray2
     CONSIDERED_MARKER = [9, 12, 20, 21] # <-- Small black tray2 outer
     # CONSIDERED_MARKER = [68, 63, 64, 67]
-    roi_pts = find_ROI(img_bgr, marker_dict, considered_markers=CONSIDERED_MARKER)
+    roi_pts = find_ROI(img_bgr, marker_dict, considered_markers=CONSIDERED_MARKER,
+                       )
     
-    # Crop ROI
-    roi_cropped, img_warped, warped_roi_pts, warped_marker_dict = crop_roi_from_image(img_bgr, roi_pts, marker_dict, roi_size_px=1000, visualisation=True)
-    img_bgr1 = roi_cropped  # For subsequent processing, focus on the cropped ROI
+    # # Crop ROI
+    # roi_cropped, img_warped, warped_roi_pts, warped_marker_dict = crop_roi_from_image(img_bgr, roi_pts, marker_dict, roi_size_px=1000, visualisation=True)
+    # img_bgr1 = roi_cropped  # For subsequent processing, focus on the cropped ROI
 
     # # # Select pixels from mouse click by user (for testing purposes)
     # selected_pixels = select_pixels_by_click(img_warped)
