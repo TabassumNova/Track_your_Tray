@@ -12,15 +12,21 @@ def detect_contours(img_bgr, visualisation=True):
         contours (list): Detected contours.
         hierarchy (np.ndarray): Contour hierarchy.
     """
-    # Convert to grayscale
-    gray = cv2.cvtColor(img_bgr, cv2.COLOR_BGR2GRAY)
+    # Accept both grayscale and BGR inputs.
+    if img_bgr.ndim == 2:
+        gray = img_bgr
+    else:
+        gray = cv2.cvtColor(img_bgr, cv2.COLOR_BGR2GRAY)
 
     # Apply Canny edge detection
     edges = cv2.Canny(gray, 100, 150, apertureSize=3)
     # Find contours
     contours, hierarchy = cv2.findContours(edges, cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_SIMPLE)
     if visualisation:
-        img_contours = img_bgr.copy()
+        if img_bgr.ndim == 2:
+            img_contours = cv2.cvtColor(img_bgr, cv2.COLOR_GRAY2BGR)
+        else:
+            img_contours = img_bgr.copy()
         cv2.drawContours(img_contours, contours, -1, (0, 255, 0), 2)
         cv2.imshow('Contours', img_contours)
         cv2.waitKey(0)
@@ -113,8 +119,11 @@ def detect_harris_corners(img_bgr, visualize=True, block_size=2, ksize=3, k=0.04
     return corners
 
 def edge_detection(image):
-    # Convert to grayscale
-    gray = cv2.cvtColor(image, cv2.COLOR_BGR2GRAY)
+    # Accept both grayscale and BGR inputs.
+    if image.ndim == 2:
+        gray = image
+    else:
+        gray = cv2.cvtColor(image, cv2.COLOR_BGR2GRAY)
 
     # Apply Canny edge detection
     edges = cv2.Canny(gray, 100, 200)

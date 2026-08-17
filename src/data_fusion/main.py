@@ -5,6 +5,8 @@ Data fusion of ROI from point cloud and Gray scale HSI image
 import sys
 import importlib
 from pathlib import Path
+import cv2
+import numpy as np
 from matplotlib import pyplot as plt
 from matplotlib.patches import Rectangle
 
@@ -30,6 +32,7 @@ if str(CLOUD_ANALYSIS_SRC) not in sys.path:
 sys.modules.pop("projection", None)
 cloud_analysis = importlib.import_module("projection")
 viz = importlib.import_module("viz")
+ransac = importlib.import_module("ransac")
 
 def SIFT_feature_matching(img1, img2, method='flann', ratio_threshold=0.75,
                           min_matches=4, visualize=True, title=""):
@@ -162,6 +165,66 @@ def SIFT_feature_matching(img1, img2, method='flann', ratio_threshold=0.75,
         'homography': homography,
     }
 
+
+def find_heatmap_contour_and_center(heatmap_crop, min_area=25, title="Heatmap contour debug"):
+    """Find the largest contour in a heatmap crop and compute its center point.
+
+    Set visualize=True to inspect normalization, binary mask, and contour center.
+    """
+    status = "success"
+    contour = None
+    center = None
+    mask = None
+    norm_u8 = None
+
+    if heatmap_crop is None or heatmap_crop.size == 0:
+        status = "empty"
+    else:
+        hm = heatmap_crop.astype(np.float32)
+        valid = np.isfinite(hm)
+        if not np.any(valid):
+            status = "no_valid_pixels"
+        else:
+            norm = np.zeros_like(hm, dtype=np.float32)
+            vmin = float(hm[valid].min())
+            vmax = float(hm[valid].max())
+            if not np.isclose(vmin, vmax):
+                norm[valid] = (hm[valid] - vmin) / (vmax - vmin)
+
+            norm_u8 = np.clip(norm * 255.0, 0, 255).astype(np.uint8)
+            blur = cv2.GaussianBlur(norm_u8, (5, 5), 0)
+            _, mask = cv2.threshold(blur, 0, 255, cv2.THRESH_BINARY + cv2.THRESH_OTSU)
+
+            kernel = np.ones((3, 3), np.uint8)
+            mask = cv2.morphologyEx(mask, cv2.MORPH_OPEN, kernel, iterations=1)
+            mask = cv2.morphologyEx(mask, cv2.MORPH_CLOSE, kernel, iterations=1)
+
+            contours, _ = cv2.findContours(mask, cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_SIMPLE)
+            if not contours:
+                status = "no_contour"
+            else:
+                contour = max(contours, key=cv2.contourArea)
+                area = cv2.contourArea(contour)
+                if area < float(min_area):
+                    status = "contour_too_small"
+                else:
+                    m = cv2.moments(contour)
+                    if m["m00"] != 0:
+                        cx = int(m["m10"] / m["m00"])
+                        cy = int(m["m01"] / m["m00"])
+                    else:
+                        x, y, w, h = cv2.boundingRect(contour)
+                        cx = int(x + w / 2)
+                        cy = int(y + h / 2)
+                    center = (cx, cy)
+
+    return {
+        "status": status,
+        "contour": contour,
+        "center": center,
+        "mask": mask,
+    }
+
 def crop_bounding_box(hsi_img, heatmap, boxes, pad = 30, max_boxes=None, visualisation= False):
     """Crop each bounding box from HSI and heatmap and visualize side by side."""
     if hsi_img is None or heatmap is None:
@@ -186,14 +249,19 @@ def crop_bounding_box(hsi_img, heatmap, boxes, pad = 30, max_boxes=None, visuali
         hsi_crop = hsi_img[y0:y1, x0:x1]
         heatmap_crop = heatmap[y0:y1, x0:x1]
 
-        # # SIFT feature matching between HSI crop and heatmap crop
-        # SIFT_feature_matching(
-        #     hsi_crop,
-        #     heatmap_crop,
-        #     method='flann',
-        #     visualize=True,
-        #     title=f"Box #{i}",
-        # )
+        contour_result = find_heatmap_contour_and_center(
+            heatmap_crop,
+            visualize=False,
+            title=f"Box #{i} contour debug",
+        )
+
+        # TODO
+        '''
+        Image or heatmap size in mm: 247 mm
+        - First map contour center pixel (c) within (x0 - x1), (y0 - y1)
+        - Then map to mm scale
+        - Check the 'map_pixels_to_mm' function, where the roi_pts are 4 image corners
+        '''
 
         if visualisation:
             # Box coordinates relative to the cropped image.
@@ -213,6 +281,12 @@ def crop_bounding_box(hsi_img, heatmap, boxes, pad = 30, max_boxes=None, visuali
             axes[1].imshow(height_vis, cmap="jet")
             axes[1].add_patch(Rectangle((box_x, box_y), box_w, box_h, fill=False, edgecolor="lime", linewidth=2))
             axes[1].add_patch(Rectangle((0, 0), 1, 1, transform=axes[1].transAxes, fill=False, edgecolor="red", linewidth=2, clip_on=False))
+            if contour_result["contour"] is not None:
+                contour_xy = contour_result["contour"].reshape(-1, 2)
+                axes[1].plot(contour_xy[:, 0], contour_xy[:, 1], color="white", linewidth=1.5)
+            if contour_result["center"] is not None:
+                cx, cy = contour_result["center"]
+                axes[1].scatter(cx, cy, c="yellow", s=45, edgecolors="black", linewidths=0.8)
             axes[1].set_title(f"Fused Heatmap Crop #{i}")
             axes[1].axis("off")
 
@@ -223,15 +297,24 @@ def crop_bounding_box(hsi_img, heatmap, boxes, pad = 30, max_boxes=None, visuali
 
 if __name__ == "__main__":
     
-    CLOUD_PATH = "/Users/nova98/Documents/Nova/cloud_data/20260629/test2_ROI/roi.ply"
-    IMG_PATH = "/Users/nova98/Documents/Nova/cloud_data/20260629/test2_ROI/cropped_ROI.png"
+    CLOUD_PATH = "/Users/nova98/Documents/Nova/cloud_data/cropped_roi/test2/roi.ply"
+    IMG_PATH = "/Users/nova98/Documents/Nova/cloud_data/cropped_roi/test2/FX10_obj8_pos_12_25_with3dcubes_2026-08-05_11-44-03.png"
 
     # Step 1: Load data
     cloud_points, hsi_img = dataloader(CLOUD_PATH, IMG_PATH)
 
+    # Remove tray using RANSAC
+    # Fit plane to the conveyer belt and tray
+    inliers1 = ransac.fit_plane_ransac(cloud_points, threshold=10, visualisation=True)
+
+    # Remove the inliers (floor plane) from the original point cloud to focus on objects above the floor
+    points_above_floor = cloud_points[np.setdiff1d(np.arange(len(cloud_points)), inliers1)]
+
+    viz.visualize_3D(points_above_floor)
+
     # Step 2: Project point cloud to 2D space with height map
     proj_img, pixel_to_point_indices, height_map = cloud_analysis.project_to_2D(
-        cloud_points,
+        points_above_floor,
         height=hsi_img.shape[0],
         width=hsi_img.shape[1],
         visualisation=True,
@@ -244,6 +327,9 @@ if __name__ == "__main__":
     # Step 4: Display with colorbar showing height values
     display_heatmap_with_colorbar(fused_heatmap, z_min, z_max)
 
+    # contours, hierarchy = detect_contours(hsi_img, visualisation=True)
+
+
     # Step 5: Contours detection on HSI image
     # # # ── SAM2 segmentation ────────────────────────────────────────────────────
     # SAM2_CHECKPOINT = "/Users/nova98/Documents/Nova/3d_localization/sam_checkpoints/sam2.1_hiera_tiny.pt"
@@ -252,7 +338,7 @@ if __name__ == "__main__":
     # countours = run_SAM2(SAM2_CHECKPOINT, SAM2_MODEL_TYPE, DEVICE, hsi_img)
 
     # # # ── SAM1 segmentation ────────────────────────────────────────────────────
-    SAM1_CHECKPOINT_PATH = "/Users/nova98/Documents/Nova/3d_localization/sam_checkpoints"
+    SAM1_CHECKPOINT_PATH = "/Users/nova98/Documents/Nova/Track_your_Tray/sam_checkpoints"
     SAM1_MODEL_TYPE = "vit_b"   # 'vit_h', 'vit_l', or 'vit_b'
     DEVICE = "cpu"              # 'cuda' if GPU available
     contours = run_SAM1(hsi_img, SAM1_CHECKPOINT_PATH, SAM1_MODEL_TYPE, DEVICE)
