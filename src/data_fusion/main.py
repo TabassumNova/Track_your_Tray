@@ -18,6 +18,7 @@ if str(PROJECT_ROOT) not in sys.path:
 from dataloader import *
 from projection import *
 from visualisation import *
+from src.mapping import map_pixels_to_mm
 from src.segmentation.sam_segmentation import *
 from src.segmentation.sam2_segmentation import *
 from src.segmentation.contour_detection import *
@@ -167,13 +168,14 @@ def SIFT_feature_matching(img1, img2, method='flann', ratio_threshold=0.75,
 
 
 def find_heatmap_contour_and_center(heatmap_crop, min_area=25, title="Heatmap contour debug"):
-    """Find the largest contour in a heatmap crop and compute its center point.
+    """Find the largest contour in a heatmap crop, its bounding box, and center point.
 
     Set visualize=True to inspect normalization, binary mask, and contour center.
     """
     status = "success"
     contour = None
     center = None
+    bbox_corners = None
     mask = None
     norm_u8 = None
 
@@ -208,12 +210,19 @@ def find_heatmap_contour_and_center(heatmap_crop, min_area=25, title="Heatmap co
                 if area < float(min_area):
                     status = "contour_too_small"
                 else:
+                    x, y, w, h = cv2.boundingRect(contour)
+                    bbox_corners = {
+                        "top_left": (float(x), float(y)),
+                        "top_right": (float(x + w), float(y)),
+                        "bottom_right": (float(x + w), float(y + h)),
+                        "bottom_left": (float(x), float(y + h)),
+                    }
+
                     m = cv2.moments(contour)
                     if m["m00"] != 0:
                         cx = int(m["m10"] / m["m00"])
                         cy = int(m["m01"] / m["m00"])
                     else:
-                        x, y, w, h = cv2.boundingRect(contour)
                         cx = int(x + w / 2)
                         cy = int(y + h / 2)
                     center = (cx, cy)
@@ -222,7 +231,78 @@ def find_heatmap_contour_and_center(heatmap_crop, min_area=25, title="Heatmap co
         "status": status,
         "contour": contour,
         "center": center,
+        "bbox_corners": bbox_corners,
         "mask": mask,
+    }
+
+
+def map_crop_contour_center_to_mm(contour_result, crop_origin, image_shape, roi_size_mm=247.0):
+    """Map crop-local contour center and bounding-box corners to pixels and millimeters."""
+    center = contour_result.get("center")
+    bbox_corners = contour_result.get("bbox_corners")
+    if center is None and bbox_corners is None:
+        return {
+            "status": contour_result.get("status", "no_center"),
+            "center_crop_px": None,
+            "center_image_px": None,
+            "center_mm": None,
+            "bbox_corners_crop_px": None,
+            "bbox_corners_image_px": None,
+            "bbox_corners_mm": None,
+        }
+
+    x0, y0 = crop_origin
+    center_crop_px = None
+    center_image_px = None
+    bbox_corners_image_px = None
+
+    if center is not None:
+        cx_crop, cy_crop = center
+        center_crop_px = (float(cx_crop), float(cy_crop))
+        center_image_px = (float(x0 + cx_crop), float(y0 + cy_crop))
+
+    if bbox_corners is not None:
+        bbox_corners_image_px = {
+            name: (float(x0 + point[0]), float(y0 + point[1]))
+            for name, point in bbox_corners.items()
+        }
+
+    img_h, img_w = image_shape[:2]
+    roi_pts = [
+        [0, 0],
+        [img_w - 1, 0],
+        [img_w - 1, img_h - 1],
+        [0, img_h - 1],
+    ]
+    points_to_map = []
+    if center_image_px is not None:
+        points_to_map.append(("center", center_image_px))
+    if bbox_corners_image_px is not None:
+        points_to_map.extend(bbox_corners_image_px.items())
+
+    selected_pixels = [[(point[0], point[1], 0) for _, point in points_to_map]]
+    mapped_points_mm = map_pixels_to_mm(
+        roi_pts,
+        selected_pixels,
+        roi_size_mm=roi_size_mm,
+        visualisation=False,
+    )[0]
+    mapped_by_name = {
+        name: mapped_point
+        for (name, _), mapped_point in zip(points_to_map, mapped_points_mm)
+    }
+
+    return {
+        "status": "success",
+        "center_crop_px": center_crop_px,
+        "center_image_px": center_image_px,
+        "center_mm": mapped_by_name.get("center"),
+        "bbox_corners_crop_px": bbox_corners,
+        "bbox_corners_image_px": bbox_corners_image_px,
+        "bbox_corners_mm": {
+            name: mapped_by_name[name]
+            for name in bbox_corners
+        } if bbox_corners is not None else None,
     }
 
 def crop_bounding_box(hsi_img, heatmap, boxes, pad = 30, max_boxes=None, visualisation= False):
@@ -236,6 +316,7 @@ def crop_bounding_box(hsi_img, heatmap, boxes, pad = 30, max_boxes=None, visuali
 
     h, w = hsi_img.shape[:2]
     total = len(boxes) if max_boxes is None else min(len(boxes), int(max_boxes))
+    center_mappings = []
 
     for i, (x, y, bw, bh) in enumerate(boxes[:total], start=1):
         x0 = max(0, int(x - pad))
@@ -251,17 +332,18 @@ def crop_bounding_box(hsi_img, heatmap, boxes, pad = 30, max_boxes=None, visuali
 
         contour_result = find_heatmap_contour_and_center(
             heatmap_crop,
-            visualize=False,
             title=f"Box #{i} contour debug",
         )
-
-        # TODO
-        '''
-        Image or heatmap size in mm: 247 mm
-        - First map contour center pixel (c) within (x0 - x1), (y0 - y1)
-        - Then map to mm scale
-        - Check the 'map_pixels_to_mm' function, where the roi_pts are 4 image corners
-        '''
+        center_mapping = map_crop_contour_center_to_mm(
+            contour_result,
+            crop_origin=(x0, y0),
+            image_shape=heatmap.shape,
+            roi_size_mm=205.0,
+        )
+        center_mappings.append(center_mapping)
+        if center_mapping["center_mm"] is not None:
+            x_mm, y_mm = center_mapping["center_mm"]
+            print(f"Box #{i} center: {center_mapping['center_image_px']} px -> ({x_mm:.2f}, {y_mm:.2f}) mm")
 
         if visualisation:
             # Box coordinates relative to the cropped image.
@@ -294,6 +376,8 @@ def crop_bounding_box(hsi_img, heatmap, boxes, pad = 30, max_boxes=None, visuali
             plt.tight_layout()
             plt.show()
             plt.close()
+
+    return center_mappings
 
 if __name__ == "__main__":
     
@@ -331,17 +415,17 @@ if __name__ == "__main__":
 
 
     # Step 5: Contours detection on HSI image
-    # # # ── SAM2 segmentation ────────────────────────────────────────────────────
-    # SAM2_CHECKPOINT = "/Users/nova98/Documents/Nova/3d_localization/sam_checkpoints/sam2.1_hiera_tiny.pt"
-    # SAM2_MODEL_TYPE = "tiny"  # 'tiny', 'small', 'base_plus', or 'large'
-    # DEVICE = "cpu"
-    # countours = run_SAM2(SAM2_CHECKPOINT, SAM2_MODEL_TYPE, DEVICE, hsi_img)
+    # # ── SAM2 segmentation ────────────────────────────────────────────────────
+    SAM2_CHECKPOINT = "/Users/nova98/Documents/Nova/Track_your_Tray/sam_checkpoints/sam2.1_hiera_tiny.pt"
+    SAM2_MODEL_TYPE = "tiny"  # 'tiny', 'small', 'base_plus', or 'large'
+    DEVICE = "cpu"
+    contours = run_SAM2(SAM2_CHECKPOINT, SAM2_MODEL_TYPE, DEVICE, hsi_img)
 
-    # # # ── SAM1 segmentation ────────────────────────────────────────────────────
-    SAM1_CHECKPOINT_PATH = "/Users/nova98/Documents/Nova/Track_your_Tray/sam_checkpoints"
-    SAM1_MODEL_TYPE = "vit_b"   # 'vit_h', 'vit_l', or 'vit_b'
-    DEVICE = "cpu"              # 'cuda' if GPU available
-    contours = run_SAM1(hsi_img, SAM1_CHECKPOINT_PATH, SAM1_MODEL_TYPE, DEVICE)
+    # # # # ── SAM1 segmentation ────────────────────────────────────────────────────
+    # SAM1_CHECKPOINT_PATH = "/Users/nova98/Documents/Nova/Track_your_Tray/sam_checkpoints"
+    # SAM1_MODEL_TYPE = "vit_b"   # 'vit_h', 'vit_l', or 'vit_b'
+    # DEVICE = "cpu"              # 'cuda' if GPU available
+    # contours = run_SAM1(hsi_img, SAM1_CHECKPOINT_PATH, SAM1_MODEL_TYPE, DEVICE)
 
     # Step 6: Remove the contours that are very near to the border
     filtered_contours = filter_border_contours(
