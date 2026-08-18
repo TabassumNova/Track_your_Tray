@@ -11,6 +11,12 @@ __pycache__/
 venv/
 env/
 
+# Folders to ignore in roi_detection branch
+src/data_fusion/
+src/extra_analysis/
+src/segmentation/
+src/sensor_axis_distortion_analysis/
+
 # OS files
 .DS_Store
 ~$Algorithms.pptx
