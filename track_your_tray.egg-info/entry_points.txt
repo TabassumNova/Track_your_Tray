@@ -1,0 +1,2 @@
+[console_scripts]
+track = track_your_tray.cli:main

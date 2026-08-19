@@ -387,7 +387,13 @@ def crop_roi_from_image(img_bgr, roi_pts, output_path, roi_size_px=400):
 
     Returns:
         roi_cropped (np.ndarray): Cropped, perspective-corrected ROI image.
+    
+    Raises:
+        IOError: If the file cannot be saved to output_path.
     """
+    import os
+    from pathlib import Path
+    
     src = np.float32(roi_pts)
     dst = np.float32([
         [0, 0],
@@ -398,7 +404,15 @@ def crop_roi_from_image(img_bgr, roi_pts, output_path, roi_size_px=400):
     M = cv2.getPerspectiveTransform(src, dst)
     roi_cropped = cv2.warpPerspective(img_bgr, M, (roi_size_px, roi_size_px))
 
-    # cv2.imwrite(output_path, roi_cropped)
+    # Create parent directory if it doesn't exist
+    output_dir = Path(output_path).parent
+    output_dir.mkdir(parents=True, exist_ok=True)
+    
+    # Save the image and check if successful
+    success = cv2.imwrite(output_path, roi_cropped)
+    if not success:
+        raise IOError(f"Failed to save image to {output_path}")
+    
     return roi_cropped
 
     # # Warp the whole image without cropping:

@@ -150,16 +150,19 @@ if st.session_state.endpoints is not None and st.session_state.img_bgr is not No
 
         if save_btn:
             try:
+                # Show where we're trying to save
+                st.info(f"Saving to: {st.session_state.image_path_input}")
+                
                 output_path, roi_cropped = save_cropped_roi(
                     st.session_state.img_bgr,
                     roi_pts,
                     st.session_state.image_path_input,
                     roi_size_px=400,
                 )
-                st.success(f"ROI saved successfully to:\n`{output_path}`")
+                st.success(f"✅ ROI saved successfully to:\n`{output_path}`")
                 st.image(cv2.cvtColor(roi_cropped, cv2.COLOR_BGR2RGB), caption="Saved Cropped ROI", use_container_width=True)
             except Exception as exc:
-                st.error(f"Error saving ROI: {str(exc)}")
+                st.error(f"❌ Error saving ROI:\n{str(exc)}\n\nTraceback:\n{type(exc).__name__}")
 
     with st.expander("Inspect edge point groups"):
         st.json(st.session_state.edge_point_groups)

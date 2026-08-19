@@ -8,7 +8,11 @@
     "*.egg-info/": true,
     "*.png": true,
     "*.jpg": true,
-    "*.jpeg": true
+    "*.jpeg": true,
+    "requirements.txt": true,
+    "track_your_tray/data_fusion/": true,
+    "track_your_tray/segmentation/": true,
+    "track_your_tray/sensor_axis_distortion_analysis/": true
   },
   "search.exclude": {
     "src/": true,
@@ -19,6 +23,10 @@
     "*.egg-info/": true,
     "*.png": true,
     "*.jpg": true,
-    "*.jpeg": true
+    "*.jpeg": true,
+    "requirements.txt": true,
+    "track_your_tray/data_fusion/": true,
+    "track_your_tray/segmentation/": true,
+    "track_your_tray/sensor_axis_distortion_analysis/": true
   }
 }
