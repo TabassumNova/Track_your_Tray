@@ -49,7 +49,7 @@ def extract_marker_side_corners(marker_dict):
     return side_corners
 
 
-def select_roi_edge_markers(marker_side_corners, markers_per_side=2, position_tolerance_px=20):
+def select_roi_edge_markers(marker_side_corners, markers_per_side=2, position_tolerance_px=50):
     """
     Group markers into ROI sides (top, bottom, left, right) and flatten points.
 
@@ -181,16 +181,16 @@ def get_extreme_line_endpoints(all_corners, mode, side, threshold=15):
 
     if mode == 'horizontal':
         # Use y value for sorting and thresholding
-        sorted_pts = sorted(points, key=lambda pt: pt[1])
-        if side == 'top':
-            ref_y = sorted_pts[0][1]
-            close_pts = [pt for pt in sorted_pts if abs(pt[1] - ref_y) <= threshold]
-        else:  # 'bottom'
-            ref_y = sorted_pts[-1][1]
-            close_pts = [pt for pt in reversed(sorted_pts) if abs(pt[1] - ref_y) <= threshold]
-        if len(close_pts) >= 2:
-            xs = np.array([pt[0] for pt in close_pts])
-            ys = np.array([pt[1] for pt in close_pts])
+        # sorted_pts = sorted(points, key=lambda pt: pt[1])
+        # if side == 'top':
+        #     ref_y = sorted_pts[0][1]
+        #     close_pts = [pt for pt in sorted_pts if abs(pt[1] - ref_y) <= threshold]
+        # else:  # 'bottom'
+        #     ref_y = sorted_pts[-1][1]
+        #     close_pts = [pt for pt in reversed(sorted_pts) if abs(pt[1] - ref_y) <= threshold]
+        if len(points) >= 2:
+            xs = np.array([pt[0] for pt in points])
+            ys = np.array([pt[1] for pt in points])
             m, b = np.polyfit(xs, ys, 1)
             x_min, x_max = xs.min(), xs.max()
             pt1 = np.array([x_min, m * x_min + b])
@@ -198,21 +198,21 @@ def get_extreme_line_endpoints(all_corners, mode, side, threshold=15):
             return pt1, pt2
         else:
             if side == 'top':
-                return sorted_pts[0], sorted_pts[1]
+                return points[0], points[1]
             else:
-                return sorted_pts[-2], sorted_pts[-1]
+                return points[-2], points[-1]
     elif mode == 'vertical':
-        # Use x value for sorting and thresholding
-        sorted_pts = sorted(points, key=lambda pt: pt[0])
-        if side == 'left':
-            ref_x = sorted_pts[0][0]
-            close_pts = [pt for pt in sorted_pts if abs(pt[0] - ref_x) <= threshold]
-        else:  # 'right'
-            ref_x = sorted_pts[-1][0]
-            close_pts = [pt for pt in reversed(sorted_pts) if abs(pt[0] - ref_x) <= threshold]
-        if len(close_pts) >= 2:
-            xs = np.array([pt[0] for pt in close_pts])
-            ys = np.array([pt[1] for pt in close_pts])
+        # # Use x value for sorting and thresholding
+        # sorted_pts = sorted(points, key=lambda pt: pt[0])
+        # if side == 'left':
+        #     ref_x = sorted_pts[0][0]
+        #     close_pts = [pt for pt in sorted_pts if abs(pt[0] - ref_x) <= threshold]
+        # else:  # 'right'
+        #     ref_x = sorted_pts[-1][0]
+        #     close_pts = [pt for pt in reversed(sorted_pts) if abs(pt[0] - ref_x) <= threshold]
+        if len(points) >= 2:
+            xs = np.array([pt[0] for pt in points])
+            ys = np.array([pt[1] for pt in points])
             m, b = np.polyfit(ys, xs, 1)
             y_min, y_max = ys.min(), ys.max()
             pt1 = np.array([m * y_min + b, y_min])
@@ -220,9 +220,9 @@ def get_extreme_line_endpoints(all_corners, mode, side, threshold=15):
             return pt1, pt2
         else:
             if side == 'left':
-                return sorted_pts[0], sorted_pts[1]
+                return points[0], points[1]
             else:
-                return sorted_pts[-2], sorted_pts[-1]
+                return points[-2], points[-1]
     else:
         raise ValueError("mode must be 'horizontal' or 'vertical'")
 
