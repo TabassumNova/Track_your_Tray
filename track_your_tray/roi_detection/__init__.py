@@ -1,6 +1,6 @@
 """ROI Detection module."""
 
-from track_your_tray.roi_detection.roi_detection_new import (
+from track_your_tray.roi_detection.roi_detection import (
     crop_roi_from_image,
     extract_marker_side_corners,
     intersection,
