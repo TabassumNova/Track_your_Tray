@@ -1,0 +1,24 @@
+{
+  "files.exclude": {
+    "src/": true,
+    "app/": true,
+    "Algorithms/": true,
+    "sam_checkpoints/": true,
+    ".venv/": true,
+    "*.egg-info/": true,
+    "*.png": true,
+    "*.jpg": true,
+    "*.jpeg": true
+  },
+  "search.exclude": {
+    "src/": true,
+    "app/": true,
+    "sam_checkpoints/": true,
+    ".venv/": true,
+    "Algorithms/": true,
+    "*.egg-info/": true,
+    "*.png": true,
+    "*.jpg": true,
+    "*.jpeg": true
+  }
+}
