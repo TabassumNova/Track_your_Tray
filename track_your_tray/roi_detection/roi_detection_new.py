@@ -49,7 +49,7 @@ def extract_marker_side_corners(marker_dict):
     return side_corners
 
 
-def select_roi_edge_markers(marker_side_corners, markers_per_side=2, position_tolerance_px=20):
+def select_roi_edge_markers(marker_side_corners, markers_per_side=2, position_tolerance_px=50):
     """
     Group markers into ROI sides (top, bottom, left, right) and flatten points.
 
@@ -180,17 +180,9 @@ def get_extreme_line_endpoints(all_corners, mode, side, threshold=15):
         raise ValueError("At least two valid points are required to fit an edge line")
 
     if mode == 'horizontal':
-        # Use y value for sorting and thresholding
-        sorted_pts = sorted(points, key=lambda pt: pt[1])
-        if side == 'top':
-            ref_y = sorted_pts[0][1]
-            close_pts = [pt for pt in sorted_pts if abs(pt[1] - ref_y) <= threshold]
-        else:  # 'bottom'
-            ref_y = sorted_pts[-1][1]
-            close_pts = [pt for pt in reversed(sorted_pts) if abs(pt[1] - ref_y) <= threshold]
-        if len(close_pts) >= 2:
-            xs = np.array([pt[0] for pt in close_pts])
-            ys = np.array([pt[1] for pt in close_pts])
+        if len(points) >= 2:
+            xs = np.array([pt[0] for pt in points])
+            ys = np.array([pt[1] for pt in points])
             m, b = np.polyfit(xs, ys, 1)
             x_min, x_max = xs.min(), xs.max()
             pt1 = np.array([x_min, m * x_min + b])
@@ -198,21 +190,13 @@ def get_extreme_line_endpoints(all_corners, mode, side, threshold=15):
             return pt1, pt2
         else:
             if side == 'top':
-                return sorted_pts[0], sorted_pts[1]
+                return points[0], points[1]
             else:
-                return sorted_pts[-2], sorted_pts[-1]
+                return points[-2], points[-1]
     elif mode == 'vertical':
-        # Use x value for sorting and thresholding
-        sorted_pts = sorted(points, key=lambda pt: pt[0])
-        if side == 'left':
-            ref_x = sorted_pts[0][0]
-            close_pts = [pt for pt in sorted_pts if abs(pt[0] - ref_x) <= threshold]
-        else:  # 'right'
-            ref_x = sorted_pts[-1][0]
-            close_pts = [pt for pt in reversed(sorted_pts) if abs(pt[0] - ref_x) <= threshold]
-        if len(close_pts) >= 2:
-            xs = np.array([pt[0] for pt in close_pts])
-            ys = np.array([pt[1] for pt in close_pts])
+        if len(points) >= 2:
+            xs = np.array([pt[0] for pt in points])
+            ys = np.array([pt[1] for pt in points])
             m, b = np.polyfit(ys, xs, 1)
             y_min, y_max = ys.min(), ys.max()
             pt1 = np.array([m * y_min + b, y_min])
@@ -220,9 +204,9 @@ def get_extreme_line_endpoints(all_corners, mode, side, threshold=15):
             return pt1, pt2
         else:
             if side == 'left':
-                return sorted_pts[0], sorted_pts[1]
+                return points[0], points[1]
             else:
-                return sorted_pts[-2], sorted_pts[-1]
+                return points[-2], points[-1]
     else:
         raise ValueError("mode must be 'horizontal' or 'vertical'")
 
@@ -387,13 +371,12 @@ def crop_roi_from_image(img_bgr, roi_pts, output_path, roi_size_px=400):
 
     Returns:
         roi_cropped (np.ndarray): Cropped, perspective-corrected ROI image.
-    
     Raises:
         IOError: If the file cannot be saved to output_path.
     """
     import os
     from pathlib import Path
-    
+
     src = np.float32(roi_pts)
     dst = np.float32([
         [0, 0],
@@ -415,52 +398,3 @@ def crop_roi_from_image(img_bgr, roi_pts, output_path, roi_size_px=400):
     
     return roi_cropped
 
-    # # Warp the whole image without cropping:
-    # # Find where the original image corners land after the transform,
-    # # then shift M so the full warped image fits within a positive canvas.
-    # h, w = img_bgr.shape[:2]
-    # img_corners = np.float32([[0, 0], [w - 1, 0], [w - 1, h - 1], [0, h - 1]]).reshape(-1, 1, 2)
-    # warped_corners = cv2.perspectiveTransform(img_corners, M)
-    # x_min = warped_corners[:, 0, 0].min()
-    # y_min = warped_corners[:, 0, 1].min()
-    # x_max = warped_corners[:, 0, 0].max()
-    # y_max = warped_corners[:, 0, 1].max()
-    # out_w = int(np.ceil(x_max - x_min))
-    # out_h = int(np.ceil(y_max - y_min))
-    # # Translation matrix to shift the result so no pixels are cut off
-    # T = np.array([[1, 0, -x_min],
-    #               [0, 1, -y_min],
-    #               [0, 0, 1]], dtype=np.float64)
-    # M_full = T @ M
-    # img_warped = cv2.warpPerspective(img_bgr, M_full, (out_w, out_h))
-
-    # # Warp the ROI points using M_full
-    # roi_pts_arr = np.float32(roi_pts).reshape(-1, 1, 2)
-    # warped_roi_pts = cv2.perspectiveTransform(roi_pts_arr, M_full).reshape(-1, 2)
-
-    # # Warp all marker corners
-    # warped_marker_dict = {}
-    # for marker_id, corners in marker_dict.items():
-    #     # corners_arr = np.float32(corners)  # shape (1, 4, 2)
-    #     corners_arr = np.float32(corners).reshape(-1, 1, 2)
-    #     warped_corners = cv2.perspectiveTransform(corners_arr, M_full)
-    #     warped_marker_dict[marker_id] = warped_corners
-
-    # if visualisation:
-    #     # Visualize warped ROI points and markers on img_warped
-    #     img_warped_vis = img_warped.copy()
-    #     cv2.polylines(img_warped_vis, [np.int32(warped_roi_pts)], isClosed=True, color=(0, 255, 0), thickness=2)
-    #     for pt in warped_roi_pts:
-    #         cv2.circle(img_warped_vis, tuple(np.int32(pt)), 5, (0, 0, 255), -1)
-    #     # Draw all warped markers
-    #     for corners in warped_marker_dict.values():
-    #         cv2.polylines(img_warped_vis, [np.int32(corners)], isClosed=True, color=(255, 0, 0), thickness=2)
-    #         for pt in corners[0]:
-    #             cv2.circle(img_warped_vis, tuple(np.int32(pt)), 4, (255, 0, 0), -1)
-
-    #     cv2.imwrite("cropped_ROI.png", roi_cropped)
-    #     cv2.imshow("Cropped ROI", roi_cropped)
-    #     cv2.imshow("Warped Full Image", img_warped_vis)
-    #     cv2.waitKey(0)
-    #     cv2.destroyAllWindows()
-    # return roi_cropped, img_warped, warped_roi_pts, warped_marker_dict
