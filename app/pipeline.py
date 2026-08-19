@@ -7,6 +7,7 @@ import numpy as np
 
 from src.roi_detection_new import (
     create_edge_point_groups,
+    crop_roi_from_image,
     extract_marker_side_corners,
     get_extreme_line_endpoints,
     intersection,
@@ -111,6 +112,28 @@ def compute_roi_from_selected_lines(lines_abc, top_choice: str, bottom_choice: s
         raise ValueError("Selected lines produced parallel intersections; choose a different line combination")
 
     return np.array(roi_pts, dtype=np.float32)
+
+
+def save_cropped_roi(img_bgr: np.ndarray, roi_pts: np.ndarray, input_image_path: str, roi_size_px: int = 400) -> Tuple[str, np.ndarray]:
+    """
+    Crop and save the ROI to the same parent directory as the input image.
+
+    Args:
+        img_bgr (np.ndarray): Input image (BGR).
+        roi_pts (np.ndarray): Four corner points of the ROI (TL, TR, BR, BL).
+        input_image_path (str): Path to the input image file.
+        roi_size_px (int): Output size for the cropped ROI.
+
+    Returns:
+        Tuple[str, np.ndarray]: Output file path and cropped image.
+    """
+    input_path = Path(input_image_path)
+    output_dir = input_path.parent
+    output_filename = f"{input_path.stem}_cropped_roi.png"
+    output_path = str(output_dir / output_filename)
+
+    roi_cropped = crop_roi_from_image(img_bgr, roi_pts, output_path, roi_size_px=roi_size_px)
+    return output_path, roi_cropped
 
 
 def draw_candidates_and_roi(

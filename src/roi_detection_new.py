@@ -375,15 +375,15 @@ def find_ROI(image, marker_dict, considered_markers, visualisation=True):
 
     return np.array(roi_pts)
 
-def crop_roi_from_image(img_bgr, roi_pts, marker_dict, roi_size_px=400, visualisation=True):
+def crop_roi_from_image(img_bgr, roi_pts, output_path, roi_size_px=400):
     """
     Crop the ROI area from the input image using a perspective transform.
 
     Args:
         img_bgr (np.ndarray): Input image (BGR).
         roi_pts (list): Four corner points of the ROI in pixel space (TL, TR, BR, BL).
+        output_path (str): Path where the cropped ROI will be saved.
         roi_size_px (int): Output size (width and height in pixels) for the cropped ROI.
-        visualisation (bool): If True, display the cropped ROI.
 
     Returns:
         roi_cropped (np.ndarray): Cropped, perspective-corrected ROI image.
@@ -398,52 +398,55 @@ def crop_roi_from_image(img_bgr, roi_pts, marker_dict, roi_size_px=400, visualis
     M = cv2.getPerspectiveTransform(src, dst)
     roi_cropped = cv2.warpPerspective(img_bgr, M, (roi_size_px, roi_size_px))
 
-    # Warp the whole image without cropping:
-    # Find where the original image corners land after the transform,
-    # then shift M so the full warped image fits within a positive canvas.
-    h, w = img_bgr.shape[:2]
-    img_corners = np.float32([[0, 0], [w - 1, 0], [w - 1, h - 1], [0, h - 1]]).reshape(-1, 1, 2)
-    warped_corners = cv2.perspectiveTransform(img_corners, M)
-    x_min = warped_corners[:, 0, 0].min()
-    y_min = warped_corners[:, 0, 1].min()
-    x_max = warped_corners[:, 0, 0].max()
-    y_max = warped_corners[:, 0, 1].max()
-    out_w = int(np.ceil(x_max - x_min))
-    out_h = int(np.ceil(y_max - y_min))
-    # Translation matrix to shift the result so no pixels are cut off
-    T = np.array([[1, 0, -x_min],
-                  [0, 1, -y_min],
-                  [0, 0, 1]], dtype=np.float64)
-    M_full = T @ M
-    img_warped = cv2.warpPerspective(img_bgr, M_full, (out_w, out_h))
+    # cv2.imwrite(output_path, roi_cropped)
+    return roi_cropped
 
-    # Warp the ROI points using M_full
-    roi_pts_arr = np.float32(roi_pts).reshape(-1, 1, 2)
-    warped_roi_pts = cv2.perspectiveTransform(roi_pts_arr, M_full).reshape(-1, 2)
+    # # Warp the whole image without cropping:
+    # # Find where the original image corners land after the transform,
+    # # then shift M so the full warped image fits within a positive canvas.
+    # h, w = img_bgr.shape[:2]
+    # img_corners = np.float32([[0, 0], [w - 1, 0], [w - 1, h - 1], [0, h - 1]]).reshape(-1, 1, 2)
+    # warped_corners = cv2.perspectiveTransform(img_corners, M)
+    # x_min = warped_corners[:, 0, 0].min()
+    # y_min = warped_corners[:, 0, 1].min()
+    # x_max = warped_corners[:, 0, 0].max()
+    # y_max = warped_corners[:, 0, 1].max()
+    # out_w = int(np.ceil(x_max - x_min))
+    # out_h = int(np.ceil(y_max - y_min))
+    # # Translation matrix to shift the result so no pixels are cut off
+    # T = np.array([[1, 0, -x_min],
+    #               [0, 1, -y_min],
+    #               [0, 0, 1]], dtype=np.float64)
+    # M_full = T @ M
+    # img_warped = cv2.warpPerspective(img_bgr, M_full, (out_w, out_h))
 
-    # Warp all marker corners
-    warped_marker_dict = {}
-    for marker_id, corners in marker_dict.items():
-        # corners_arr = np.float32(corners)  # shape (1, 4, 2)
-        corners_arr = np.float32(corners).reshape(-1, 1, 2)
-        warped_corners = cv2.perspectiveTransform(corners_arr, M_full)
-        warped_marker_dict[marker_id] = warped_corners
+    # # Warp the ROI points using M_full
+    # roi_pts_arr = np.float32(roi_pts).reshape(-1, 1, 2)
+    # warped_roi_pts = cv2.perspectiveTransform(roi_pts_arr, M_full).reshape(-1, 2)
 
-    if visualisation:
-        # Visualize warped ROI points and markers on img_warped
-        img_warped_vis = img_warped.copy()
-        cv2.polylines(img_warped_vis, [np.int32(warped_roi_pts)], isClosed=True, color=(0, 255, 0), thickness=2)
-        for pt in warped_roi_pts:
-            cv2.circle(img_warped_vis, tuple(np.int32(pt)), 5, (0, 0, 255), -1)
-        # Draw all warped markers
-        for corners in warped_marker_dict.values():
-            cv2.polylines(img_warped_vis, [np.int32(corners)], isClosed=True, color=(255, 0, 0), thickness=2)
-            for pt in corners[0]:
-                cv2.circle(img_warped_vis, tuple(np.int32(pt)), 4, (255, 0, 0), -1)
+    # # Warp all marker corners
+    # warped_marker_dict = {}
+    # for marker_id, corners in marker_dict.items():
+    #     # corners_arr = np.float32(corners)  # shape (1, 4, 2)
+    #     corners_arr = np.float32(corners).reshape(-1, 1, 2)
+    #     warped_corners = cv2.perspectiveTransform(corners_arr, M_full)
+    #     warped_marker_dict[marker_id] = warped_corners
 
-        cv2.imwrite("cropped_ROI.png", roi_cropped)
-        cv2.imshow("Cropped ROI", roi_cropped)
-        cv2.imshow("Warped Full Image", img_warped_vis)
-        cv2.waitKey(0)
-        cv2.destroyAllWindows()
-    return roi_cropped, img_warped, warped_roi_pts, warped_marker_dict
+    # if visualisation:
+    #     # Visualize warped ROI points and markers on img_warped
+    #     img_warped_vis = img_warped.copy()
+    #     cv2.polylines(img_warped_vis, [np.int32(warped_roi_pts)], isClosed=True, color=(0, 255, 0), thickness=2)
+    #     for pt in warped_roi_pts:
+    #         cv2.circle(img_warped_vis, tuple(np.int32(pt)), 5, (0, 0, 255), -1)
+    #     # Draw all warped markers
+    #     for corners in warped_marker_dict.values():
+    #         cv2.polylines(img_warped_vis, [np.int32(corners)], isClosed=True, color=(255, 0, 0), thickness=2)
+    #         for pt in corners[0]:
+    #             cv2.circle(img_warped_vis, tuple(np.int32(pt)), 4, (255, 0, 0), -1)
+
+    #     cv2.imwrite("cropped_ROI.png", roi_cropped)
+    #     cv2.imshow("Cropped ROI", roi_cropped)
+    #     cv2.imshow("Warped Full Image", img_warped_vis)
+    #     cv2.waitKey(0)
+    #     cv2.destroyAllWindows()
+    # return roi_cropped, img_warped, warped_roi_pts, warped_marker_dict

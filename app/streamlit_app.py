@@ -11,6 +11,7 @@ from app.pipeline import (
     draw_candidates_and_roi,
     load_image_to_bgr,
     parse_marker_ids,
+    save_cropped_roi,
 )
 
 
@@ -46,6 +47,8 @@ if "selected_markers" not in st.session_state:
     st.session_state.selected_markers = None
 if "marker_dict" not in st.session_state:
     st.session_state.marker_dict = None
+if "image_path_input" not in st.session_state:
+    st.session_state.image_path_input = None
 
 if run_btn:
     try:
@@ -71,6 +74,7 @@ if run_btn:
         st.session_state.selected_markers = selected_markers
         st.session_state.marker_dict = marker_dict
         st.session_state.edge_point_groups = edge_point_groups
+        st.session_state.image_path_input = image_path
         st.success(f"Detected markers: {len(marker_dict)} | Considered markers found: {len(selected_markers)}")
     except Exception as exc:
         st.error(str(exc))
@@ -104,12 +108,19 @@ if st.session_state.endpoints is not None and st.session_state.img_bgr is not No
     roi_pts = None
     roi_error = None
     try:
+        # Map user selections (1-8) to actual line keys (top_1, top_2, etc.)
+        line_mapping = {
+            "1": "top_1", "2": "top_2",
+            "3": "bottom_1", "4": "bottom_2",
+            "5": "left_1", "6": "left_2",
+            "7": "right_1", "8": "right_2",
+        }
         roi_pts = compute_roi_from_selected_lines(
             st.session_state.lines_abc,
-            top_choice=top_choice,
-            bottom_choice=bottom_choice,
-            left_choice=left_choice,
-            right_choice=right_choice,
+            top_choice=line_mapping[top_choice],
+            bottom_choice=line_mapping[bottom_choice],
+            left_choice=line_mapping[left_choice],
+            right_choice=line_mapping[right_choice],
         )
     except Exception as exc:
         roi_error = str(exc)
@@ -129,6 +140,26 @@ if st.session_state.endpoints is not None and st.session_state.img_bgr is not No
     elif roi_pts is not None:
         st.markdown("Selected ROI points (TL, TR, BR, BL):")
         st.code(np.array2string(roi_pts, precision=2), language="text")
+
+        # Add save button
+        col1, col2 = st.columns([1, 3])
+        with col1:
+            save_btn = st.button("Save Cropped ROI", type="primary")
+        with col2:
+            st.empty()
+
+        if save_btn:
+            try:
+                output_path, roi_cropped = save_cropped_roi(
+                    st.session_state.img_bgr,
+                    roi_pts,
+                    st.session_state.image_path_input,
+                    roi_size_px=400,
+                )
+                st.success(f"ROI saved successfully to:\n`{output_path}`")
+                st.image(cv2.cvtColor(roi_cropped, cv2.COLOR_BGR2RGB), caption="Saved Cropped ROI", use_container_width=True)
+            except Exception as exc:
+                st.error(f"Error saving ROI: {str(exc)}")
 
     with st.expander("Inspect edge point groups"):
         st.json(st.session_state.edge_point_groups)
