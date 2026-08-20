@@ -15,6 +15,7 @@ from track_your_tray.pipeline.pipeline import (
 )
 
 
+
 st.set_page_config(page_title="Tray ROI Assistant", layout="wide")
 st.title("Tray ROI Assistant")
 st.caption("Load an image, detect marker-based edge candidates, and select final ROI edges.")
@@ -30,10 +31,6 @@ with st.sidebar:
         "Considered marker IDs",
         value="9, 12, 20, 21",
         help="Comma-separated marker IDs",
-    )
-    aruco_script_path = st.text_input(
-        "Aruco detection script path",
-        value="/Users/nova98/Documents/Nova/Marker-detection/src/aruco_detection.py",
     )
     corner_key = st.selectbox("Corner set", ["outer_corners", "inner_corners"], index=0)
     markers_per_side = st.slider("Markers per side", min_value=1, max_value=4, value=2, step=1)
@@ -60,7 +57,7 @@ if run_btn:
             raise ValueError("Please provide at least one marker ID")
 
         img_bgr = load_image_to_bgr(image_path)
-        marker_dict = detect_marker_corners(img_bgr, aruco_script_path, corner_key=corner_key)
+        marker_dict = detect_marker_corners(img_bgr, corner_key=corner_key)
 
         selected_markers, edge_point_groups, endpoints, lines_abc = compute_edge_candidates(
             marker_dict,

@@ -13,6 +13,7 @@ Requires-Dist: opencv-python
 Requires-Dist: numpy
 Requires-Dist: matplotlib
 Requires-Dist: hylite
+Requires-Dist: markerkit
 
 
 # ROI Detection

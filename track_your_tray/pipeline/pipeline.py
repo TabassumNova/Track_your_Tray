@@ -1,9 +1,9 @@
-import importlib.util
 from pathlib import Path
 from typing import Dict, List, Tuple
 
 import cv2
 import numpy as np
+from markerkit import getAruco
 
 from track_your_tray.roi_detection.roi_detection import (
     create_edge_point_groups,
@@ -45,25 +45,10 @@ def load_image_to_bgr(image_path: str) -> np.ndarray:
     return img_bgr
 
 
-def load_aruco_module(aruco_script_path: str):
-    script_path = Path(aruco_script_path)
-    if not script_path.exists():
-        raise FileNotFoundError(f"Aruco script not found: {aruco_script_path}")
-
-    spec = importlib.util.spec_from_file_location("aruco_detection", str(script_path))
-    if spec is None or spec.loader is None:
-        raise ImportError("Could not create import spec for aruco_detection script")
-
-    module = importlib.util.module_from_spec(spec)
-    spec.loader.exec_module(module)
-    return module
-
-
-def detect_marker_corners(img_bgr: np.ndarray, aruco_script_path: str, corner_key: str = "outer_corners") -> Dict[int, np.ndarray]:
-    aruco_detection = load_aruco_module(aruco_script_path)
-    marker_dict_raw = aruco_detection.getAruco(
+def detect_marker_corners(img_bgr: np.ndarray, corner_key: str = "outer_corners") -> Dict[int, np.ndarray]:
+    marker_dict_raw = getAruco(
         img_bgr,
-        aruco_dict_id=cv2.aruco.DICT_4X4_1000,
+        cv2.aruco.DICT_4X4_1000,
         visualisation=False,
     )
 

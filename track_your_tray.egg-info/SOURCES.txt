@@ -12,5 +12,5 @@ track_your_tray/pipeline/__init__.py
 track_your_tray/pipeline/pipeline.py
 track_your_tray/pipeline/streamlit_app.py
 track_your_tray/roi_detection/__init__.py
-track_your_tray/roi_detection/roi_detection_new.py
+track_your_tray/roi_detection/roi_detection.py
 track_your_tray/roi_detection/visualization.py
