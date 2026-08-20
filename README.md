@@ -6,8 +6,11 @@ Region of Interest (ROI) detection on the conveyer belt using aruco markers. Thi
 
 <img src="images/ROI_detection2.png" alt="ROI Detection" width="700" height="500">
 
-# Usage
-Coming soon ...
+# Installation and Usage
+`pip install track-your-tray`
+
+From terminal call `track` and it will open the app in the browser
+
 
 # Acknowledgement
 This work is performed at [Helmholtz Institute Freiberg for Resource Technology](https://www.hzdr.de/db/Cms?pOid=32948&pNid=2423&pLang=en) at the [Exploration](https://www.iexplo.space/) department
